@@ -1,8 +1,48 @@
+import { useEffect } from "react";
 import { GAME_INFO, type GameType } from "@brain-arena/shared";
-const rules:Record<GameType,string[]>={
- BLACK_AND_WHITE:["각자 0~8 타일을 한 번씩 사용합니다. 짝수는 검정, 홀수는 흰색입니다.","선공이 먼저 비공개 제출하면 후공은 색만 확인하고 제출합니다.","큰 숫자가 1점을 얻고, 라운드 승자가 다음 선공이 됩니다.","먼저 5점을 얻거나 9라운드 후 앞선 플레이어가 승리합니다. 9라운드 동점이면 새 타일로 연장합니다."],
- ASCENDING:["매 턴 1~10 카드 두 장이 공개되고, 선택권을 가진 플레이어가 한 장을 가져갑니다.","남은 카드는 상대에게 자동 지급되며, 양쪽은 받은 카드를 비공개로 빈칸에 배치합니다.","상대의 보드와 배치 위치는 10턴이 모두 끝날 때까지 공개되지 않습니다.","오른쪽 숫자가 더 크거나 같으면 오름차순이 이어집니다. 같은 숫자끼리도 연결됩니다."],
- SECRET_DICE:["공격자가 공개 주사위 3개 중 1~3개를 고정합니다.","공격자와 수비자가 필요한 숫자를 비공개로 골라 최종 주사위 5개를 만듭니다.","공격자는 미사용 점수 칸 하나에 점수를 기록하고 역할을 교대합니다.","5다이스와 조커를 포함한 각자 12개 점수 칸을 모두 사용한 뒤 총점이 높은 플레이어가 승리합니다."],
- INDIAN_POKER:["각자 칩 20개로 시작하며 1~10 카드 두 벌을 사용합니다.","내 카드는 볼 수 없고 상대 카드만 볼 수 있습니다.","콜, +1 레이즈, 올인, 폴드 중 선택합니다. 콜하면 카드를 비교합니다.","카드 10으로 폴드하면 상대에게 칩을 최대 10개 추가로 줍니다. 상대 칩을 모두 얻으면 승리합니다."]
+
+interface RuleSection { title: string; items: string[] }
+
+const rules: Record<GameType, RuleSection[]> = {
+  BLACK_AND_WHITE: [
+    { title: "목표와 준비", items: ["각자 0~8 숫자 타일을 한 장씩 받습니다. 짝수(0·2·4·6·8)는 검정, 홀수(1·3·5·7)는 흰색이며 각 타일은 한 번만 사용할 수 있습니다.", "상대보다 높은 숫자를 내 라운드 점수를 얻으세요. 먼저 5점을 얻거나 9라운드 종료 시 더 높은 점수를 가진 플레이어가 승리합니다."] },
+    { title: "라운드 진행", items: ["선공이 타일 하나를 비공개로 냅니다. 후공은 그 타일의 숫자는 볼 수 없고 검정인지 흰색인지만 확인한 뒤 자신의 타일을 냅니다.", "두 숫자를 비교해 더 큰 숫자를 낸 플레이어가 1점을 얻습니다. 같은 숫자라면 아무도 점수를 얻지 않습니다.", "라운드 승자가 다음 라운드의 선공이 됩니다. 무승부라면 직전 후공이 다음 선공이 됩니다."] },
+    { title: "기억할 점", items: ["게임 중에는 상대가 실제로 낸 숫자와 남은 숫자가 공개되지 않습니다. 공개된 색, 승패, 사용 횟수를 바탕으로 상대 숫자를 추리해야 합니다.", "9라운드 뒤 동점이면 새 0~8 타일 세트로 연장전을 진행합니다. 행동 시간이 끝나면 남은 타일 중 하나가 무작위로 제출됩니다."] },
+  ],
+  ASCENDING: [
+    { title: "목표와 준비", items: ["각자 왼쪽부터 오른쪽으로 이어진 10칸 보드를 가집니다. 10턴 동안 보드를 채워 가장 긴 연속 오름차순 구간을 만드는 것이 목표입니다.", "오른쪽 숫자가 왼쪽 숫자보다 크거나 같으면 연결됩니다. 예를 들어 2→2→5는 길이 3이며, 숫자가 작아지는 지점에서 연결이 끊깁니다."] },
+    { title: "턴 진행", items: ["매 턴 서로 다른 1~10 카드 두 장이 공개됩니다. 선택권을 가진 플레이어가 한 장을 고르고, 남은 한 장은 상대에게 자동으로 지급됩니다.", "두 플레이어는 받은 카드를 자신의 빈칸 한 곳에 비공개로 놓습니다. 한 번 놓은 카드는 옮길 수 없고, 상대의 배치 위치와 보드는 게임이 끝날 때 공개됩니다.", "카드 선택권은 턴마다 교대됩니다. 10턴이 끝나면 두 플레이어의 보드가 모두 완성됩니다."] },
+    { title: "승패와 동점", items: ["서버가 각 보드에서 인접한 칸만 따라가며 가장 긴 오름차순 구간을 계산합니다. 더 긴 구간을 만든 플레이어가 승리합니다.", "최장 길이가 같으면 최장 구간 개수, 그 구간의 가장 큰 합, 오름차순 인접 쌍 개수 순으로 비교하며 모두 같으면 무승부입니다.", "시간이 끝나면 카드나 빈칸이 무작위로 선택됩니다."] },
+  ],
+  SECRET_DICE: [
+    { title: "목표와 역할", items: ["매 턴 공격자만 자신의 점수판에 점수를 기록하고, 수비자는 공격자의 조합을 방해합니다. 점수를 기록한 뒤 두 역할을 교대합니다.", "각자 숫자 칸 6개와 조합 칸 6개, 총 12칸을 모두 사용합니다. 모든 칸을 채운 뒤 총점이 높은 플레이어가 승리합니다."] },
+    { title: "한 턴의 진행", items: ["공개 주사위 3개가 나오면 공격자가 그중 1~3개를 고정합니다. 3개 고정은 각 플레이어가 게임당 한 번만 사용할 수 있습니다.", "최종 결과가 5개가 되도록 두 플레이어가 1~6 숫자를 비공개로 제출합니다. 같은 숫자를 여러 번 골라도 되며, 양쪽 제출이 끝난 뒤 모든 숫자가 함께 공개됩니다.", "공격자는 아직 쓰지 않은 점수 칸 하나를 반드시 선택합니다. 조건을 만족하지 못한 조합 칸을 선택하면 그 칸에는 0점이 기록됩니다."] },
+    { title: "점수와 순환 연속", items: ["Ones~Sixes는 해당 숫자의 합입니다. 2·3 다이스 15점, 4다이스 25점, 5다이스 50점이며 조커는 주사위 5개의 총합입니다.", "4연속은 20점, 5연속은 30점입니다. 1과 6은 서로 이어진 숫자로 보므로 1·2·4·5·6은 4→5→6→1→2의 5연속, 1·2·5·6은 5→6→1→2의 4연속입니다.", "시간이 끝나면 고정 주사위와 비공개 숫자는 무작위로 선택되고, 점수 칸은 현재 얻을 수 있는 최고 점수 칸으로 자동 기록됩니다."] },
+  ],
+  INDIAN_POKER: [
+    { title: "목표와 준비", items: ["각자 칩 20개로 시작하며 1~10 카드가 두 장씩 든 덱을 사용합니다. 상대의 칩을 모두 가져오면 승리합니다.", "라운드마다 기본 베팅으로 칩 1개씩 냅니다. 자신의 카드는 볼 수 없고 상대 카드만 볼 수 있으므로, 상대의 숫자와 행동으로 내 카드의 강도를 추리해야 합니다."] },
+    { title: "베팅", items: ["콜은 상대와 같은 수의 칩을 걸고 카드를 비교하는 행동입니다. 레이즈는 현재 베팅보다 1개 더 올리며, 상대가 맞출 수 있는 칩까지만 걸 수 있습니다.", "폴드하면 카드를 비교하지 않고 현재 판돈을 상대에게 줍니다. 올인은 남은 칩을 모두 거는 행동이며 상대가 콜하면 즉시 카드를 공개합니다.", "콜 뒤에는 더 높은 카드가 판돈을 가져갑니다. 같은 숫자라면 판돈을 다음 라운드로 넘겨 승자가 나올 때까지 누적합니다."] },
+    { title: "특수 규칙", items: ["내 카드가 10인데 폴드했다면 판돈과 별도로 칩 10개를 상대에게 줍니다. 칩이 10개보다 적다면 남은 칩을 모두 줍니다.", "상대의 레이즈가 없을 때 시간이 끝나면 자동 콜, 레이즈를 받은 상태에서 시간이 끝나면 자동 폴드합니다."] },
+  ],
 };
-export function RuleModal({gameType,onClose}:{gameType:GameType;onClose:()=>void}){return <div className="modal-backdrop" onClick={onClose}><section className="modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><p className="eyebrow">HOW TO PLAY</p><h2>{GAME_INFO[gameType].name}</h2><ol>{rules[gameType].map(rule=><li key={rule}>{rule}</li>)}</ol><p className="rule-time">시간 초과 시 서버가 규칙에 맞는 자동 행동을 실행합니다.</p><button className="primary full" onClick={onClose}>확인</button></section></div>}
+
+export function RuleModal({ gameType, onClose }: { gameType: GameType; onClose: () => void }) {
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onClose]);
+
+  return <div className="modal-backdrop" onClick={onClose}>
+    <section className="modal rule-modal" role="dialog" aria-modal="true" aria-labelledby="rule-title" onClick={event => event.stopPropagation()}>
+      <button className="modal-close" aria-label="규칙 닫기" onClick={onClose}>×</button>
+      <p className="eyebrow">HOW TO PLAY</p>
+      <h2 id="rule-title">{GAME_INFO[gameType].name}</h2>
+      <div className="rule-sections">{rules[gameType].map(section => <section key={section.title}>
+        <h3>{section.title}</h3>
+        <ul>{section.items.map(item => <li key={item}>{item}</li>)}</ul>
+      </section>)}</div>
+      <button className="primary full" onClick={onClose}>규칙을 확인했습니다</button>
+    </section>
+  </div>;
+}
