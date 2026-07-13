@@ -29,6 +29,7 @@ export interface BlackAndWhiteRoundView {
 export type TileColor = "BLACK" | "WHITE";
 export interface BlackAndWhiteView extends GameViewBase {
   kind: "BLACK_AND_WHITE";
+  phase: "SELECT" | "ROUND_RESULT";
   set: number;
   round: number;
   scores: Record<string, number>;
