@@ -1,4 +1,4 @@
-export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER"] as const;
+export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER"] as const;
 export type GameType = (typeof GAME_TYPES)[number];
 export type RoomStatus = "WAITING" | "PLAYING" | "FINISHED";
 
@@ -97,7 +97,24 @@ export interface IndianPokerView extends GameViewBase {
   history: PokerRoundView[];
 }
 
-export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView;
+export type NumberOperator = "+" | "-" | "×" | "÷";
+export type NumberCardValue = number | NumberOperator;
+export type FindNumberPhase = "MEMORIZE" | "BUZZER" | "ANSWER_FIRST" | "ANSWER_SECOND" | "REVEAL" | "SOLUTION";
+export interface FindNumberRevealView { playerId: string | null; indices: number[]; values: NumberCardValue[]; expression: string; correct: boolean; target: number; reason: "ANSWER" | "NO_BUZZ" }
+export interface FindNumberHistoryView { round: number; target: number; playerId: string | null; expression: string; correct: boolean }
+export interface FindTheNumberView extends GameViewBase {
+  kind: "FIND_THE_NUMBER";
+  phase: FindNumberPhase;
+  round: number;
+  scores: Record<string, number>;
+  target: number | null;
+  answererId: string | null;
+  board: Array<NumberCardValue | null>;
+  reveal: FindNumberRevealView | null;
+  history: FindNumberHistoryView[];
+}
+
+export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView;
 export interface RoomView {
   code: string;
   hostId: string;
@@ -117,5 +134,6 @@ export const GAME_INFO: Record<GameType, { name: string; description: string; du
   BLACK_AND_WHITE: { name: "흑과 백", description: "색으로 숫자를 추리하는 순차 심리전", duration: "5~10분", difficulty: "쉬움", available: true },
   ASCENDING: { name: "배틀 오름차순", description: "두 카드 중 하나를 고르고 가장 긴 오름차순을 완성하세요", duration: "5~10분", difficulty: "보통", available: true },
   SECRET_DICE: { name: "시크릿 다이스", description: "공격과 수비가 함께 만드는 주사위 족보", duration: "15~25분", difficulty: "보통", available: true },
-  INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true }
+  INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true },
+  FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true }
 };

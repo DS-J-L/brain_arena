@@ -29,7 +29,7 @@ export function HomePage({ nickname, setNickname, onCreate, onJoin, busy, error 
       <div className="section-head"><div><p className="eyebrow">CHOOSE YOUR GAME</p><h2>오늘의 게임</h2></div><p>게임을 선택한 뒤 규칙을 읽거나 새 방을 만드세요.</p></div>
       <div className="game-grid">{GAME_TYPES.map((type, index) => {
         const game = GAME_INFO[type];
-        return <button key={type} className={`game-card ${selected === type ? "selected" : ""}`} onClick={() => setSelected(type)}><span className="game-number">0{index + 1}</span><div className={`game-symbol symbol-${index}`}>{["◐", "↗", "⚄", "◇"][index]}</div><h3>{game.name}</h3><p>{game.description}</p><footer><span>{game.duration}</span><span>{game.difficulty}</span></footer>{!game.available && <span className="soon">RULES TBD</span>}</button>;
+        return <button key={type} className={`game-card ${selected === type ? "selected" : ""}`} onClick={() => setSelected(type)}><span className="game-number">0{index + 1}</span><div className={`game-symbol symbol-${index}`}>{["◐", "↗", "⚄", "◇", "#"][index]}</div><h3>{game.name}</h3><p>{game.description}</p><footer><span>{game.duration}</span><span>{game.difficulty}</span></footer>{!game.available && <span className="soon">RULES TBD</span>}</button>;
       })}</div>
     </section>
     {showRules && <RuleModal gameType={selected} onClose={() => setShowRules(false)}/>}
