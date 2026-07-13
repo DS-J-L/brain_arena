@@ -16,23 +16,107 @@ function longest(board: Array<number | null>) {
   return best;
 }
 
-function boardScore(board: Array<number | null>) {
-  let flexibility = 0, breaks = 0;
-  for (let index = 0; index < board.length; index++) {
-    if (board[index] === null) {
-      const left = board.slice(0, index).reverse().find(value => value !== null);
-      const right = board.slice(index + 1).find(value => value !== null);
-      flexibility += left === undefined || right === undefined ? 5 : Math.max(0, right - left);
-    } else if (index && board[index - 1] !== null && board[index - 1]! > board[index]!) breaks++;
-  }
-  return longest(board) * 5 + flexibility * .08 - breaks * 3;
+function combination(n: number, k: number) {
+  if (k < 0 || k > n) return 0;
+  let result = 1;
+  for (let index = 1; index <= k; index++) result = result * (n - index + 1) / index;
+  return result;
 }
 
-function bestPlacement(board: Array<number | null>, card: number) {
-  return board.map((value, position) => ({ value, position })).filter(item => item.value === null).map(item => {
+function multinomial3(total: number, less: number, equal: number, greater: number) {
+  if (less + equal + greater !== total) return 0;
+  return combination(total, less) * combination(total - less, equal);
+}
+
+export function rankFitProbability(board: Array<number | null>, card: number, position: number) {
+  if (board[position] !== null) return 0;
+  const futureCardCount = board.filter(value => value === null).length - 1;
+  const knownLess = board.filter(value => value !== null && value < card).length;
+  const knownEqual = board.filter(value => value === card).length;
+  const lessProbability = (card - 1) / 10;
+  const equalProbability = 1 / 10;
+  const greaterProbability = (10 - card) / 10;
+  const targetRank = position + 1;
+  let probability = 0;
+  for (let futureLess = 0; futureLess <= futureCardCount; futureLess++) {
+    for (let futureEqual = 0; futureEqual <= futureCardCount - futureLess; futureEqual++) {
+      const futureGreater = futureCardCount - futureLess - futureEqual;
+      const lowerRank = knownLess + futureLess;
+      const upperRank = lowerRank + knownEqual + futureEqual + 1;
+      if (lowerRank < targetRank && targetRank <= upperRank) probability += multinomial3(futureCardCount, futureLess, futureEqual, futureGreater) * lessProbability ** futureLess * equalProbability ** futureEqual * greaterProbability ** futureGreater;
+    }
+  }
+  return probability;
+}
+
+function nearestLeft(board: Array<number | null>, position: number) {
+  for (let index = position - 1; index >= 0; index--) if (board[index] !== null) return board[index];
+  return null;
+}
+
+function nearestRight(board: Array<number | null>, position: number) {
+  for (let index = position + 1; index < board.length; index++) if (board[index] !== null) return board[index];
+  return null;
+}
+
+function feasibleLongest(board: Array<number | null>) {
+  let best = 0;
+  for (let start = 0; start < board.length; start++) {
+    for (let end = start; end < board.length; end++) {
+      let previous: number | null = null, feasible = true;
+      for (let index = start; index <= end; index++) if (board[index] !== null) {
+        if (previous !== null && previous > board[index]!) { feasible = false; break; }
+        previous = board[index];
+      }
+      if (feasible) best = Math.max(best, end - start + 1);
+    }
+  }
+  return best;
+}
+
+function placementBaseScore(board: Array<number | null>, card: number, position: number) {
+  if (board[position] !== null) return -Infinity;
+  const progress = board.filter(value => value !== null).length / board.length;
+  const left = nearestLeft(board, position), right = nearestRight(board, position);
+  const keepsOrder = (left === null || left <= card) && (right === null || card <= right);
+  const next = [...board]; next[position] = card;
+  const adjacentConnections = (position > 0 && next[position - 1] !== null && next[position - 1]! <= card ? 1 : 0) + (position + 1 < next.length && next[position + 1] !== null && card <= next[position + 1]! ? 1 : 0);
+  const rankWeight = 100 - progress * 45;
+  const score = rankFitProbability(board, card, position) * rankWeight + longest(next) * (4 + progress * 7) + feasibleLongest(next) * (2.5 - progress) + adjacentConnections * (4 + progress * 5);
+  return keepsOrder ? score : score * .12;
+}
+
+function seededCard(seed: number) {
+  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return Math.floor((value - Math.floor(value)) * 10) + 1;
+}
+
+function rolloutScore(board: Array<number | null>, sample: number) {
+  const simulation = [...board];
+  for (let step = 0; simulation.some(value => value === null); step++) {
+    const card = seededCard(sample * 31 + step * 17 + 1);
+    const placement = simulation.map((value, position) => value === null ? { position, score: placementBaseScore(simulation, card, position) } : null).filter((item): item is { position: number; score: number } => item !== null).sort((a, b) => b.score - a.score)[0];
+    simulation[placement.position] = card;
+  }
+  let pairs = 0;
+  for (let index = 1; index < simulation.length; index++) if (simulation[index - 1]! <= simulation[index]!) pairs++;
+  return longest(simulation) + pairs * .08;
+}
+
+export function rankAscendingPlacements(board: Array<number | null>, card: number, rolloutCount = 40) {
+  return board.map((value, position) => value === null ? { position, baseScore: placementBaseScore(board, card, position) } : null).filter((item): item is { position: number; baseScore: number } => item !== null).map(item => {
     const next = [...board]; next[item.position] = card;
-    return { position: item.position, score: boardScore(next) };
+    let future = 0;
+    for (let sample = 0; sample < rolloutCount; sample++) future += rolloutScore(next, sample);
+    return { position: item.position, score: item.baseScore + future / Math.max(1, rolloutCount) * 5, rankProbability: rankFitProbability(board, card, item.position) };
   }).sort((a, b) => b.score - a.score);
+}
+
+function chooseAscending<T>(ranked: T[]) {
+  const roll = Math.random();
+  if (roll < .9 || ranked.length === 1) return ranked[0];
+  if (roll < .98 || ranked.length === 2) return ranked[1];
+  return ranked[2 + Math.floor(Math.random() * Math.max(1, ranked.length - 2))] ?? ranked[0];
 }
 
 function decideBlackWhite(view: Extract<GameView, { kind: "BLACK_AND_WHITE" }>, botId: string): BotDecision | null {
@@ -51,12 +135,17 @@ function decideBlackWhite(view: Extract<GameView, { kind: "BLACK_AND_WHITE" }>, 
 function decideAscending(view: Extract<GameView, { kind: "ASCENDING" }>, botId: string): BotDecision | null {
   if (view.phase === "CHOOSE") {
     if (view.chooserId !== botId) return null;
-    const choices = view.offeredCards.map((card, cardIndex) => ({ cardIndex, score: bestPlacement(view.myBoard, card)[0]?.score ?? -99 })).sort((a, b) => b.score - a.score);
-    return { type: "CHOOSE_CARD", payload: { cardIndex: noisyPick(choices).cardIndex } };
+    const choices = view.offeredCards.map((card, cardIndex) => {
+      const myBest = rankAscendingPlacements(view.myBoard, card, 24)[0]?.score ?? -999;
+      const otherCard = view.offeredCards[cardIndex === 0 ? 1 : 0];
+      const genericOpponentValue = rankAscendingPlacements(Array(10).fill(null), otherCard, 0)[0]?.score ?? 0;
+      return { cardIndex, score: myBest - genericOpponentValue * .12 };
+    }).sort((a, b) => b.score - a.score);
+    return { type: "CHOOSE_CARD", payload: { cardIndex: chooseAscending(choices).cardIndex } };
   }
   if (view.hasPlaced || view.myAssignedCard === null) return null;
-  const placements = bestPlacement(view.myBoard, view.myAssignedCard);
-  return placements.length ? { type: "PLACE_CARD", payload: { position: noisyPick(placements).position } } : null;
+  const placements = rankAscendingPlacements(view.myBoard, view.myAssignedCard);
+  return placements.length ? { type: "PLACE_CARD", payload: { position: chooseAscending(placements).position } } : null;
 }
 
 function allSecretValues(count: number) {
