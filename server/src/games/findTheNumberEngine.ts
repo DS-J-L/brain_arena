@@ -57,7 +57,11 @@ export function findNumberSolution(board: NumberCardValue[], target: number) {
 }
 
 function chooseTarget(state: FindTheNumberState) {
-  const remaining = TARGETS.filter(target => !state.usedTargets.includes(target));
+  let remaining = TARGETS.filter(target => !state.usedTargets.includes(target));
+  if (remaining.length === 0 && state.practiceSolo) {
+    state.usedTargets = [];
+    remaining = [...TARGETS];
+  }
   const target = remaining[Math.floor(Math.random() * remaining.length)];
   if (target === undefined) throw new Error("출제 가능한 목표 숫자가 없습니다.");
   state.target = target;
@@ -170,7 +174,7 @@ export const findTheNumberEngine: GameEngine<FindTheNumberState, FindNumberActio
     next.history.push({ round: next.round, target: next.target!, playerId, expression, correct });
     if (correct) {
       next.scores[playerId]++;
-      if (next.scores[playerId] >= 6) { next.pendingWinnerId = playerId; next.afterReveal = "FINISH"; }
+      if (!next.practiceSolo && next.scores[playerId] >= 6) { next.pendingWinnerId = playerId; next.afterReveal = "FINISH"; }
       else next.afterReveal = "NEXT_ROUND";
     } else if (next.practiceSolo) {
       next.mistakes++;

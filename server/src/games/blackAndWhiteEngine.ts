@@ -55,10 +55,10 @@ export const blackAndWhiteEngine: GameEngine<BlackAndWhiteState, SelectTileActio
     return next;
   },
   getPlayerView(state,playerId) {
-    const opponent=state.playerIds.find(id=>id!==playerId)!; const finished=state.winnerId!==null; const latestIndex=state.history.length-1;
+    const opponent=state.playerIds.find(id=>id!==playerId)!; const finished=state.winnerId!==null;
     return { kind:"BLACK_AND_WHITE", set:state.set, round:state.round, phase:state.phase, scores:state.scores, myRemainingTiles:state.remainingTiles[playerId], opponentRemainingCount:state.remainingTiles[opponent].length, leaderId:state.leaderId, currentPlayerId:state.currentPlayerId,
       leadColor: state.phase === "SELECT" && state.selections[state.leaderId] !== null ? tileColor(state.selections[state.leaderId]!) : null, hasSelected:state.selections[playerId]!==null,
-      history:state.history.map((round,index)=>({set:round.set,round:round.round,myTile:round.tiles[playerId],myColor:tileColor(round.tiles[playerId]),opponentColor:tileColor(round.tiles[opponent]),result:round.winnerId===null?"DRAW":round.winnerId===playerId?"WIN":"LOSE",...((finished||(state.phase==="ROUND_RESULT"&&index===latestIndex))?{opponentTile:round.tiles[opponent]}:{})})),
+      history:state.history.map(round=>({set:round.set,round:round.round,myTile:round.tiles[playerId],myColor:tileColor(round.tiles[playerId]),opponentColor:tileColor(round.tiles[opponent]),result:round.winnerId===null?"DRAW":round.winnerId===playerId?"WIN":"LOSE",...(finished?{opponentTile:round.tiles[opponent]}:{})})),
       winnerId:state.winnerId,isDraw:false,deadline:state.deadline };
   },
   getResult(state):GameResult|null { return state.winnerId ? {winnerId:state.winnerId,isDraw:false}:null; }

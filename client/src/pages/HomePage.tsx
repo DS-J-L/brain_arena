@@ -22,7 +22,7 @@ export function HomePage({ nickname, setNickname, onCreate, onPractice, onJoin, 
         <div className="join-row"><input className="code-input" value={code} onChange={event => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} placeholder="6자리 코드"/><button className="secondary" disabled={busy} onClick={() => onJoin(code)}>참가</button></div>
         {error && <p className="error">{error}</p>}
         <button className="primary full" disabled={busy || !GAME_INFO[selected].available} onClick={() => onCreate(selected)}>{busy ? "연결 중..." : GAME_INFO[selected].available ? `${gameName(selected)} 방 만들기` : "규칙 준비 중"}<span>→</span></button>
-        <button className="secondary full practice-button" disabled={busy || !GAME_INFO[selected].available} onClick={() => onPractice(selected)}>{selected === "FIND_THE_NUMBER" ? "혼자 연습하기 · 오답 3회 종료" : "연습 봇과 대전하기"}</button>
+        <button className="secondary full practice-button" disabled={busy || !GAME_INFO[selected].available} onClick={() => onPractice(selected)}>{selected === "FIND_THE_NUMBER" ? "혼자 연습하기 · 목숨 3개 무한 모드" : "연습 봇과 대전하기"}</button>
         <button className="secondary full rules-button" onClick={() => setShowRules(true)}>{gameName(selected)} 규칙 자세히 보기</button>
       </div>
     </section>
