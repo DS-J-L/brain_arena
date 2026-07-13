@@ -11,12 +11,13 @@ export interface BlackAndWhiteState {
 export interface SelectTileAction { type: "SELECT_TILE"; tile: number }
 export const tileColor = (tile: number): TileColor => tile % 2 === 0 ? "BLACK" : "WHITE";
 const freshTiles = () => [0,1,2,3,4,5,6,7,8];
+const ACTION_TIME_MS = 40_000;
 
 export const blackAndWhiteEngine: GameEngine<BlackAndWhiteState, SelectTileAction, BlackAndWhiteView> = {
   createInitialState(ids) {
     if (ids.length !== 2) throw new Error("두 명의 플레이어가 필요합니다.");
     const [a,b] = ids as [string,string]; const leaderId = ids[Math.floor(Math.random()*2)];
-    return { playerIds:[a,b], set:1, round:1, scores:{[a]:0,[b]:0}, remainingTiles:{[a]:freshTiles(),[b]:freshTiles()}, selections:{[a]:null,[b]:null}, history:[], leaderId, currentPlayerId:leaderId, winnerId:null, isDraw:false, deadline:Date.now()+20_000 };
+    return { playerIds:[a,b], set:1, round:1, scores:{[a]:0,[b]:0}, remainingTiles:{[a]:freshTiles(),[b]:freshTiles()}, selections:{[a]:null,[b]:null}, history:[], leaderId, currentPlayerId:leaderId, winnerId:null, isDraw:false, deadline:Date.now()+ACTION_TIME_MS };
   },
   validateAction(state, playerId, action) {
     return !state.winnerId && state.currentPlayerId === playerId && action.type === "SELECT_TILE" && Number.isInteger(action.tile) && action.tile >= 0 && action.tile <= 8 && state.selections[playerId] === null && state.remainingTiles[playerId].includes(action.tile);
@@ -25,7 +26,7 @@ export const blackAndWhiteEngine: GameEngine<BlackAndWhiteState, SelectTileActio
     if (!this.validateAction(state,playerId,action)) throw new Error("현재 차례에 보유한 타일만 선택할 수 있습니다.");
     const next = structuredClone(state); next.selections[playerId] = action.tile;
     const followerId = next.playerIds.find(id => id !== next.leaderId)!;
-    if (playerId === next.leaderId) { next.currentPlayerId = followerId; next.deadline = Date.now()+20_000; return next; }
+    if (playerId === next.leaderId) { next.currentPlayerId = followerId; next.deadline = Date.now()+ACTION_TIME_MS; return next; }
     const [a,b] = next.playerIds; const aTile=next.selections[a]!; const bTile=next.selections[b]!;
     const roundWinner = aTile === bTile ? null : aTile > bTile ? a : b;
     if (roundWinner) next.scores[roundWinner] += 1;
@@ -37,7 +38,7 @@ export const blackAndWhiteEngine: GameEngine<BlackAndWhiteState, SelectTileActio
       if (next.scores[a] !== next.scores[b]) next.winnerId = next.scores[a] > next.scores[b] ? a : b;
       else { next.set += 1; next.round = 1; next.remainingTiles={[a]:freshTiles(),[b]:freshTiles()}; }
     } else next.round += 1;
-    next.selections={[a]:null,[b]:null}; next.currentPlayerId=next.leaderId; next.deadline=next.winnerId?null:Date.now()+20_000;
+    next.selections={[a]:null,[b]:null}; next.currentPlayerId=next.leaderId; next.deadline=next.winnerId?null:Date.now()+ACTION_TIME_MS;
     return next;
   },
   getPlayerView(state,playerId) {
