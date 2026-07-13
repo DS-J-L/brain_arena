@@ -1,0 +1,3 @@
+export function RuleModal({ onClose }: { onClose: () => void }) {
+  return <div className="modal-backdrop" onClick={onClose}><section className="modal" onClick={e => e.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><p className="eyebrow">HOW TO PLAY</p><h2>흑과 백</h2><ol><li>각자 1부터 9까지 타일을 하나씩 가집니다.</li><li>매 라운드 한 타일을 비공개로 동시에 냅니다.</li><li>상대가 낸 타일은 숫자 대신 색만 공개됩니다. 홀수는 검정, 짝수는 흰색입니다.</li><li>더 큰 숫자를 낸 플레이어가 1점을 얻으며, 먼저 5점을 얻으면 승리합니다.</li><li>20초 안에 선택하지 않으면 남은 타일이 자동 제출될 수 있습니다.</li></ol><button className="primary full" onClick={onClose}>확인</button></section></div>;
+}

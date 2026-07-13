@@ -1,0 +1,9 @@
+{
+  "name": "@brain-arena/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./types.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": { "typescript": "^5.8.3" }
+}
