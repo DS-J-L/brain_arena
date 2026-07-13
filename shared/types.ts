@@ -79,7 +79,7 @@ export interface SecretDiceView extends GameViewBase {
 }
 
 export type PokerActionName = "CALL" | "RAISE" | "FOLD" | "ALL_IN";
-export interface PokerRoundView { round: number; winnerId: string | null; pot: number; myCard?: number; opponentCard?: number; folded: boolean }
+export interface PokerRoundView { round: number; winnerId: string | null; pot: number; myCard?: number; opponentCard?: number; folded: boolean; foldedPlayerId?: string; foldPenalty?: number }
 export interface IndianPokerView extends GameViewBase {
   kind: "INDIAN_POKER";
   round: number;
