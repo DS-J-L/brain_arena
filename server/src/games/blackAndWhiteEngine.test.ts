@@ -1,29 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { blackAndWhiteEngine } from "./blackAndWhiteEngine.js";
-
-describe("blackAndWhiteEngine", () => {
-  it("resolves a round and hides the opponent tile before finish", () => {
-    let state = blackAndWhiteEngine.createInitialState(["a", "b"]);
-    state = blackAndWhiteEngine.applyAction(state, "a", { type: "SELECT_TILE", tile: 3 });
-    expect(blackAndWhiteEngine.getPlayerView(state, "b").opponentHasSelected).toBe(true);
-    state = blackAndWhiteEngine.applyAction(state, "b", { type: "SELECT_TILE", tile: 2 });
-    const view = blackAndWhiteEngine.getPlayerView(state, "b");
-    expect(view.scores.a).toBe(1);
-    expect(view.history[0].opponentColor).toBe("BLACK");
-    expect(view.history[0].opponentTile).toBeUndefined();
-  });
-  it("rejects reused tiles and ends at five wins", () => {
-    let state = blackAndWhiteEngine.createInitialState(["a", "b"]);
-    for (const [a, b] of [[9,5],[8,4],[7,3],[6,2],[5,1]] as const) {
-      state = blackAndWhiteEngine.applyAction(state, "a", { type: "SELECT_TILE", tile: a });
-      state = blackAndWhiteEngine.applyAction(state, "b", { type: "SELECT_TILE", tile: b });
-    }
-    expect(state.winnerId).toBe("a");
-    expect(blackAndWhiteEngine.getPlayerView(state, "b").history[0].opponentTile).toBe(9);
-  });
-  it("validates ownership", () => {
-    const state = blackAndWhiteEngine.createInitialState(["a", "b"]);
-    expect(blackAndWhiteEngine.validateAction(state, "a", { type: "SELECT_TILE", tile: 10 })).toBe(false);
-    expect(blackAndWhiteEngine.validateAction(state, "x", { type: "SELECT_TILE", tile: 1 })).toBe(false);
-  });
+import {describe,expect,it} from "vitest";
+import {blackAndWhiteEngine} from "./blackAndWhiteEngine.js";
+describe("blackAndWhiteEngine",()=>{
+ it("선공 색만 후공에게 공개하고 실제 숫자는 숨긴다",()=>{let s=blackAndWhiteEngine.createInitialState(["a","b"]);s.leaderId="a";s.currentPlayerId="a";s=blackAndWhiteEngine.applyAction(s,"a",{type:"SELECT_TILE",tile:8});const before=blackAndWhiteEngine.getPlayerView(s,"b");expect(before.leadColor).toBe("BLACK");expect(before.currentPlayerId).toBe("b");s=blackAndWhiteEngine.applyAction(s,"b",{type:"SELECT_TILE",tile:1});const view=blackAndWhiteEngine.getPlayerView(s,"b");expect(view.scores.a).toBe(1);expect(view.history[0].opponentTile).toBeUndefined();expect(view.leaderId).toBe("a");});
+ it("0~8 타일로 다섯 번 이기면 종료하고 기록을 공개한다",()=>{let s=blackAndWhiteEngine.createInitialState(["a","b"]);s.leaderId="a";s.currentPlayerId="a";for(const[a,b]of[[8,4],[7,3],[6,2],[5,1],[4,0]]as const){s=blackAndWhiteEngine.applyAction(s,"a",{type:"SELECT_TILE",tile:a});s=blackAndWhiteEngine.applyAction(s,"b",{type:"SELECT_TILE",tile:b});}expect(s.winnerId).toBe("a");expect(blackAndWhiteEngine.getPlayerView(s,"b").history[0].opponentTile).toBe(8);});
+ it("차례와 타일 소유권을 검증한다",()=>{const s=blackAndWhiteEngine.createInitialState(["a","b"]);const wrong=s.currentPlayerId==="a"?"b":"a";expect(blackAndWhiteEngine.validateAction(s,wrong,{type:"SELECT_TILE",tile:1})).toBe(false);expect(blackAndWhiteEngine.validateAction(s,s.currentPlayerId,{type:"SELECT_TILE",tile:9})).toBe(false);});
 });

@@ -1,50 +1,35 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import type { GameType, RoomView } from "@brain-arena/shared";
+import { SCORE_CATEGORIES, type GameType, type RoomView, type ScoreCategory } from "@brain-arena/shared";
 import { blackAndWhiteEngine, type BlackAndWhiteState } from "../games/blackAndWhiteEngine.js";
+import { ascendingEngine, type AscendingState } from "../games/ascendingEngine.js";
+import { scoreDice, secretDiceEngine, type SecretDiceState } from "../games/secretDiceEngine.js";
+import { indianPokerEngine, type IndianPokerState } from "../games/indianPokerEngine.js";
 
-interface InternalPlayer { id: string; socketId: string; nickname: string; isReady: boolean; isConnected: boolean }
-export interface GameRoom { code: string; hostId: string; gameType: GameType; players: InternalPlayer[]; status: "WAITING"|"PLAYING"|"FINISHED"; gameState: BlackAndWhiteState | null; createdAt: number }
+type GameState=BlackAndWhiteState|AscendingState|SecretDiceState|IndianPokerState;
+interface InternalPlayer {id:string;socketId:string;nickname:string;isReady:boolean;isConnected:boolean;disconnectedAt:number|null}
+export interface GameRoom {code:string;hostId:string;gameType:GameType;players:InternalPlayer[];status:"WAITING"|"PLAYING"|"FINISHED";gameState:GameState|null;createdAt:number}
 
-export class RoomManager {
-  readonly rooms = new Map<string, GameRoom>();
-  private code() { let value = ""; do { value = randomBytes(5).toString("base64url").replace(/[-_]/g, "A").slice(0, 6).toUpperCase(); } while (this.rooms.has(value)); return value; }
-  create(nickname: string, gameType: GameType, socketId: string, requestedId?: string) {
-    if (gameType !== "BLACK_AND_WHITE") throw new Error("이 게임은 준비 중입니다.");
-    const player = { id: requestedId || randomUUID(), socketId, nickname: cleanName(nickname), isReady: false, isConnected: true };
-    const room: GameRoom = { code: this.code(), hostId: player.id, gameType, players: [player], status: "WAITING", gameState: null, createdAt: Date.now() };
-    this.rooms.set(room.code, room); return { room, player };
-  }
-  join(code: string, nickname: string, socketId: string, requestedId?: string) {
-    const room = this.require(code); if (room.players.length >= 2) throw new Error("이미 가득 찬 방입니다.");
-    const name = cleanName(nickname); if (room.players.some(p => p.nickname.toLowerCase() === name.toLowerCase())) throw new Error("같은 닉네임을 사용할 수 없습니다.");
-    const player = { id: requestedId || randomUUID(), socketId, nickname: name, isReady: false, isConnected: true };
-    room.players.push(player); return { room, player };
-  }
-  require(code: string) { const room = this.rooms.get(code.trim().toUpperCase()); if (!room) throw new Error("존재하지 않는 방입니다."); return room; }
-  authenticate(room: GameRoom, playerId: string, socketId?: string) { const player = room.players.find(p => p.id === playerId); if (!player || (socketId && player.socketId !== socketId)) throw new Error("플레이어를 확인할 수 없습니다."); return player; }
-  ready(code: string, playerId: string, socketId: string) { const room = this.require(code); const player = this.authenticate(room, playerId, socketId); if (room.status !== "WAITING") throw new Error("준비 상태를 변경할 수 없습니다."); player.isReady = !player.isReady; if (room.players.length === 2 && room.players.every(p => p.isReady)) { room.gameState = blackAndWhiteEngine.createInitialState(room.players.map(p => p.id)); room.status = "PLAYING"; } return room; }
-  action(code: string, playerId: string, socketId: string, type: string, payload: unknown) { const room = this.require(code); this.authenticate(room, playerId, socketId); if (room.status !== "PLAYING" || !room.gameState) throw new Error("진행 중인 게임이 아닙니다."); if (type !== "SELECT_TILE") throw new Error("지원하지 않는 행동입니다."); const tile = Number((payload as { tile?: unknown })?.tile); room.gameState = blackAndWhiteEngine.applyAction(room.gameState, playerId, { type, tile }); if (blackAndWhiteEngine.getResult(room.gameState)) room.status = "FINISHED"; return room; }
-  restart(code: string, playerId: string, socketId: string) { const room = this.require(code); this.authenticate(room, playerId, socketId); if (room.status !== "FINISHED") throw new Error("아직 게임이 끝나지 않았습니다."); room.status = "WAITING"; room.gameState = null; room.players.forEach(p => p.isReady = false); return room; }
-  leave(code: string, playerId: string) { const room = this.rooms.get(code); if (!room) return null; if (playerId === room.hostId) { this.rooms.delete(code); return { closed: true, room }; } room.players = room.players.filter(p => p.id !== playerId); room.players.forEach(p => p.isReady = false); room.status = "WAITING"; room.gameState = null; return { closed: false, room }; }
-  disconnect(socketId: string) { for (const room of this.rooms.values()) { const p = room.players.find(x => x.socketId === socketId); if (p) { p.isConnected = false; return room; } } return null; }
-  reconnect(code: string, playerId: string, socketId: string) { const room = this.require(code); const player = this.authenticate(room, playerId); player.socketId = socketId; player.isConnected = true; return room; }
-  processDeadlines(now = Date.now()) {
-    const changed: GameRoom[] = [];
-    for (const room of this.rooms.values()) {
-      const state = room.gameState;
-      if (room.status !== "PLAYING" || !state?.deadline || state.deadline > now) continue;
-      const missingPlayers = state.playerIds.filter(playerId => state.selections[playerId] === null);
-      for (const playerId of missingPlayers) {
-        const tiles = room.gameState!.remainingTiles[playerId];
-        const tile = tiles[Math.floor(Math.random() * tiles.length)];
-        room.gameState = blackAndWhiteEngine.applyAction(room.gameState!, playerId, { type: "SELECT_TILE", tile });
-      }
-      if (blackAndWhiteEngine.getResult(room.gameState!)) room.status = "FINISHED";
-      changed.push(room);
-    }
-    return changed;
-  }
-  view(room: GameRoom, playerId: string): RoomView { return { code: room.code, hostId: room.hostId, gameType: room.gameType, status: room.status, players: room.players.map(p => ({ id: p.id, nickname: p.nickname, isReady: p.isReady, isConnected: p.isConnected, isHost: p.id === room.hostId })), gameState: room.gameState ? blackAndWhiteEngine.getPlayerView(room.gameState, playerId) : null }; }
+export class RoomManager{
+ readonly rooms=new Map<string,GameRoom>();
+ private code(){let value="";do{value=randomBytes(5).toString("base64url").replace(/[-_]/g,"A").slice(0,6).toUpperCase();}while(this.rooms.has(value));return value;}
+ create(nickname:string,gameType:GameType,socketId:string,requestedId?:string){const player={id:requestedId||randomUUID(),socketId,nickname:cleanName(nickname),isReady:false,isConnected:true,disconnectedAt:null};const room:GameRoom={code:this.code(),hostId:player.id,gameType,players:[player],status:"WAITING",gameState:null,createdAt:Date.now()};this.rooms.set(room.code,room);return{room,player};}
+ join(code:string,nickname:string,socketId:string,requestedId?:string){const room=this.require(code);if(room.players.length>=2)throw new Error("이미 가득 찬 방입니다.");const name=cleanName(nickname);if(room.players.some(p=>p.nickname.toLowerCase()===name.toLowerCase()))throw new Error("같은 닉네임을 사용할 수 없습니다.");const player={id:requestedId||randomUUID(),socketId,nickname:name,isReady:false,isConnected:true,disconnectedAt:null};room.players.push(player);return{room,player};}
+ require(code:string){const room=this.rooms.get(code.trim().toUpperCase());if(!room)throw new Error("존재하지 않는 방입니다.");return room;}
+ authenticate(room:GameRoom,playerId:string,socketId?:string){const player=room.players.find(p=>p.id===playerId);if(!player||(socketId&&player.socketId!==socketId))throw new Error("플레이어를 확인할 수 없습니다.");return player;}
+ private initial(room:GameRoom){const ids=room.players.map(p=>p.id);switch(room.gameType){case"BLACK_AND_WHITE":return blackAndWhiteEngine.createInitialState(ids);case"ASCENDING":return ascendingEngine.createInitialState(ids);case"SECRET_DICE":return secretDiceEngine.createInitialState(ids);case"INDIAN_POKER":return indianPokerEngine.createInitialState(ids);}}
+ ready(code:string,playerId:string,socketId:string){const room=this.require(code),player=this.authenticate(room,playerId,socketId);if(room.status!=="WAITING")throw new Error("준비 상태를 변경할 수 없습니다.");player.isReady=!player.isReady;if(room.players.length===2&&room.players.every(p=>p.isReady)){room.gameState=this.initial(room);room.status="PLAYING";}return room;}
+ action(code:string,playerId:string,socketId:string,type:string,payload:unknown){const room=this.require(code);this.authenticate(room,playerId,socketId);if(room.status!=="PLAYING"||!room.gameState)throw new Error("진행 중인 게임이 아닙니다.");const data=payload as Record<string,unknown>|undefined;
+  switch(room.gameType){case"BLACK_AND_WHITE":if(type!=="SELECT_TILE")throw new Error("지원하지 않는 행동입니다.");room.gameState=blackAndWhiteEngine.applyAction(room.gameState as BlackAndWhiteState,playerId,{type,tile:Number(data?.tile)});break;case"ASCENDING":if(type==="CHOOSE_CARD")room.gameState=ascendingEngine.applyAction(room.gameState as AscendingState,playerId,{type,cardIndex:Number(data?.cardIndex)});else if(type==="PLACE_CARD")room.gameState=ascendingEngine.applyAction(room.gameState as AscendingState,playerId,{type,position:Number(data?.position)});else throw new Error("지원하지 않는 행동입니다.");break;case"SECRET_DICE":{const s=room.gameState as SecretDiceState;if(type==="KEEP_DICE")room.gameState=secretDiceEngine.applyAction(s,playerId,{type,indices:data?.indices as number[]});else if(type==="SELECT_SECRET")room.gameState=secretDiceEngine.applyAction(s,playerId,{type,values:data?.values as number[]});else if(type==="SCORE_CATEGORY")room.gameState=secretDiceEngine.applyAction(s,playerId,{type,category:data?.category as ScoreCategory});else throw new Error("지원하지 않는 행동입니다.");break;}case"INDIAN_POKER":{if(!["CALL","RAISE","FOLD","ALL_IN"].includes(type))throw new Error("지원하지 않는 행동입니다.");room.gameState=indianPokerEngine.applyAction(room.gameState as IndianPokerState,playerId,{type:type as "CALL"|"RAISE"|"FOLD"|"ALL_IN"});break;}}
+  if(this.result(room))room.status="FINISHED";return room;}
+ forfeit(code:string,playerId:string,socketId:string){const room=this.require(code);this.authenticate(room,playerId,socketId);if(room.status!=="PLAYING"||!room.gameState)throw new Error("기권할 게임이 없습니다.");const winner=room.players.find(p=>p.id!==playerId)!.id;room.gameState.winnerId=winner;room.gameState.isDraw=false;room.gameState.deadline=null;room.status="FINISHED";return room;}
+ restart(code:string,playerId:string,socketId:string){const room=this.require(code);this.authenticate(room,playerId,socketId);if(room.status!=="FINISHED")throw new Error("아직 게임이 끝나지 않았습니다.");room.status="WAITING";room.gameState=null;room.players.forEach(p=>p.isReady=false);return room;}
+ leave(code:string,playerId:string){const room=this.rooms.get(code);if(!room)return null;if(playerId===room.hostId){this.rooms.delete(code);return{closed:true,room};}room.players=room.players.filter(p=>p.id!==playerId);room.players.forEach(p=>p.isReady=false);room.status="WAITING";room.gameState=null;return{closed:false,room};}
+ disconnect(socketId:string){for(const room of this.rooms.values()){const p=room.players.find(x=>x.socketId===socketId);if(p){p.isConnected=false;p.disconnectedAt=Date.now();return room;}}return null;}
+ reconnect(code:string,playerId:string,socketId:string){const room=this.require(code),player=this.authenticate(room,playerId);player.socketId=socketId;player.isConnected=true;player.disconnectedAt=null;return room;}
+ private result(room:GameRoom){if(!room.gameState)return null;switch(room.gameType){case"BLACK_AND_WHITE":return blackAndWhiteEngine.getResult(room.gameState as BlackAndWhiteState);case"ASCENDING":return ascendingEngine.getResult(room.gameState as AscendingState);case"SECRET_DICE":return secretDiceEngine.getResult(room.gameState as SecretDiceState);case"INDIAN_POKER":return indianPokerEngine.getResult(room.gameState as IndianPokerState);}}
+ processDeadlines(now=Date.now()){const changed:GameRoom[]=[];for(const room of [...this.rooms.values()]){if(room.status!=="PLAYING"||!room.gameState)continue;const expiredDisconnected=room.players.filter(p=>!p.isConnected&&p.disconnectedAt&&now-p.disconnectedAt>=30_000);if(expiredDisconnected.length===2){this.rooms.delete(room.code);continue;}if(expiredDisconnected.length===1){const winner=room.players.find(p=>p.id!==expiredDisconnected[0].id)!.id;room.gameState.winnerId=winner;room.gameState.isDraw=false;room.gameState.deadline=null;room.status="FINISHED";changed.push(room);continue;}if(!room.gameState.deadline||room.gameState.deadline>now)continue;
+   switch(room.gameType){case"BLACK_AND_WHITE":{const s=room.gameState as BlackAndWhiteState;const tiles=s.remainingTiles[s.currentPlayerId];room.gameState=blackAndWhiteEngine.applyAction(s,s.currentPlayerId,{type:"SELECT_TILE",tile:tiles[Math.floor(Math.random()*tiles.length)]});break;}case"ASCENDING":{const s=room.gameState as AscendingState;if(s.phase==="CHOOSE")room.gameState=ascendingEngine.applyAction(s,s.chooserId,{type:"CHOOSE_CARD",cardIndex:Math.floor(Math.random()*2)});else{const missing=s.playerIds.filter(id=>s.placements[id]===null);for(const id of missing){const current=room.gameState as AscendingState,empty=current.boards[id].map((v,i)=>v===null?i:-1).filter(i=>i>=0);room.gameState=ascendingEngine.applyAction(current,id,{type:"PLACE_CARD",position:empty[Math.floor(Math.random()*empty.length)]});}}break;}case"SECRET_DICE":{const s=room.gameState as SecretDiceState;if(s.phase==="KEEP")room.gameState=secretDiceEngine.applyAction(s,s.attackerId,{type:"KEEP_DICE",indices:[Math.floor(Math.random()*3)]});else if(s.phase==="SECRET"){const missing=s.playerIds.filter(id=>s.secretSelections[id]===null);for(const id of missing){const view=secretDiceEngine.getPlayerView(room.gameState as SecretDiceState,id);room.gameState=secretDiceEngine.applyAction(room.gameState as SecretDiceState,id,{type:"SELECT_SECRET",values:Array.from({length:view.requiredSecretCount},()=>Math.floor(Math.random()*6)+1)});}}else{const unused=SCORE_CATEGORIES.filter(c=>s.scoreSheets[s.attackerId][c]===undefined).sort((a,b)=>scoreDice(s.finalDice!,b)-scoreDice(s.finalDice!,a));room.gameState=secretDiceEngine.applyAction(s,s.attackerId,{type:"SCORE_CATEGORY",category:unused[0]});}break;}case"INDIAN_POKER":{const s=room.gameState as IndianPokerState;const view=indianPokerEngine.getPlayerView(s,s.currentPlayerId);const type=s.currentBet>s.playerBets[s.currentPlayerId]?"FOLD":"CALL";if(view.legalActions.includes(type))room.gameState=indianPokerEngine.applyAction(s,s.currentPlayerId,{type});break;}}
+   if(this.result(room))room.status="FINISHED";changed.push(room);}return changed;}
+ view(room:GameRoom,playerId:string):RoomView{let gameState:RoomView["gameState"]=null;if(room.gameState)switch(room.gameType){case"BLACK_AND_WHITE":gameState=blackAndWhiteEngine.getPlayerView(room.gameState as BlackAndWhiteState,playerId);break;case"ASCENDING":gameState=ascendingEngine.getPlayerView(room.gameState as AscendingState,playerId);break;case"SECRET_DICE":gameState=secretDiceEngine.getPlayerView(room.gameState as SecretDiceState,playerId);break;case"INDIAN_POKER":gameState=indianPokerEngine.getPlayerView(room.gameState as IndianPokerState,playerId);break;}return{code:room.code,hostId:room.hostId,gameType:room.gameType,status:room.status,players:room.players.map(p=>({id:p.id,nickname:p.nickname,isReady:p.isReady,isConnected:p.isConnected,isHost:p.id===room.hostId})),gameState};}
 }
-
-function cleanName(value: string) { const name = value?.trim().slice(0, 12); if (!name || name.length < 2) throw new Error("닉네임은 2~12자로 입력해 주세요."); return name; }
+function cleanName(value:string){const name=value?.trim().slice(0,12);if(!name||name.length<2)throw new Error("닉네임은 2~12자로 입력해 주세요.");return name;}

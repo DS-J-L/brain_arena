@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/components/connectionbadge.tsx","./src/components/logo.tsx","./src/components/roomcode.tsx","./src/components/rulemodal.tsx","./src/pages/homepage.tsx","./src/pages/roompage.tsx","./src/socket/socket.ts"],"version":"5.8.3"}

@@ -10,51 +10,111 @@ export interface Player {
   isHost: boolean;
 }
 
-export interface RoundView {
+export interface GameViewBase {
+  kind: GameType;
+  winnerId: string | null;
+  isDraw: boolean;
+  deadline: number | null;
+}
+
+export interface BlackAndWhiteRoundView {
+  set: number;
   round: number;
   myTile: number;
-  opponentColor: "BLACK" | "WHITE";
+  myColor: TileColor;
+  opponentColor: TileColor;
   result: "WIN" | "LOSE" | "DRAW";
   opponentTile?: number;
 }
-
-export interface BlackAndWhiteView {
+export type TileColor = "BLACK" | "WHITE";
+export interface BlackAndWhiteView extends GameViewBase {
   kind: "BLACK_AND_WHITE";
+  set: number;
   round: number;
   scores: Record<string, number>;
   myRemainingTiles: number[];
   opponentRemainingCount: number;
-  opponentUsedColors: Array<"BLACK" | "WHITE">;
+  leaderId: string;
+  currentPlayerId: string;
+  leadColor: TileColor | null;
   hasSelected: boolean;
-  opponentHasSelected: boolean;
-  history: RoundView[];
-  winnerId: string | null;
-  deadline: number | null;
+  history: BlackAndWhiteRoundView[];
 }
 
+export interface AscendingResult { longest: number; longestCount: number; longestSum: number; ascendingPairs: number }
+export interface AscendingRoundView { round: number; offeredCards: [number,number]; myCard: number; opponentCard: number; myPosition: number; opponentPosition: number; chooserId: string }
+export interface AscendingView extends GameViewBase {
+  kind: "ASCENDING";
+  round: number;
+  phase: "CHOOSE" | "PLACE";
+  chooserId: string;
+  offeredCards: [number,number];
+  myAssignedCard: number | null;
+  opponentAssignedCard: number | null;
+  myBoard: Array<number | null>;
+  opponentBoard: Array<number | null>;
+  hasPlaced: boolean;
+  opponentHasPlaced: boolean;
+  history: AscendingRoundView[];
+  results: Record<string, AscendingResult> | null;
+}
+
+export const SCORE_CATEGORIES = ["ONES", "TWOS", "THREES", "FOURS", "FIVES", "SIXES", "FULL_HOUSE", "SMALL_STRAIGHT", "LARGE_STRAIGHT", "FOUR_KIND", "FIVE_KIND", "JOKER"] as const;
+export type ScoreCategory = (typeof SCORE_CATEGORIES)[number];
+export type DicePhase = "KEEP" | "SECRET" | "SCORE";
+export interface SecretDiceView extends GameViewBase {
+  kind: "SECRET_DICE";
+  turn: number;
+  attackerId: string;
+  phase: DicePhase;
+  publicDice: number[];
+  keptIndices: number[];
+  requiredSecretCount: number;
+  mySecretSelection: number[] | null;
+  opponentHasSelected: boolean;
+  finalDice: number[] | null;
+  scoreSheets: Record<string, Partial<Record<ScoreCategory, number>>>;
+  totals: Record<string, number>;
+  threeKeepAvailable: Record<string, boolean>;
+}
+
+export type PokerActionName = "CALL" | "RAISE" | "FOLD" | "ALL_IN";
+export interface PokerRoundView { round: number; winnerId: string | null; pot: number; myCard?: number; opponentCard?: number; folded: boolean }
+export interface IndianPokerView extends GameViewBase {
+  kind: "INDIAN_POKER";
+  round: number;
+  phase: "BETTING" | "ROUND_END";
+  chips: Record<string, number>;
+  pot: number;
+  currentPlayerId: string;
+  currentBet: number;
+  playerBets: Record<string, number>;
+  opponentCard: number | null;
+  myCard: null;
+  legalActions: PokerActionName[];
+  maxRaiseTo: number;
+  history: PokerRoundView[];
+}
+
+export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView;
 export interface RoomView {
   code: string;
   hostId: string;
   gameType: GameType;
   players: Player[];
   status: RoomStatus;
-  gameState: BlackAndWhiteView | null;
+  gameState: GameView | null;
 }
 
-export interface Ack<T = undefined> {
-  ok: boolean;
-  data?: T;
-  error?: string;
-}
-
+export interface Ack<T = undefined> { ok: boolean; data?: T; error?: string }
 export interface CreateRoomPayload { nickname: string; gameType: GameType; playerId?: string }
 export interface JoinRoomPayload { nickname: string; roomCode: string; playerId?: string }
 export interface PlayerRoomPayload { roomCode: string; playerId: string }
 export interface GameActionPayload extends PlayerRoomPayload { type: string; payload?: unknown }
 
 export const GAME_INFO: Record<GameType, { name: string; description: string; duration: string; difficulty: string; available: boolean }> = {
-  BLACK_AND_WHITE: { name: "흑과 백", description: "숫자의 색만 공개되는 심리전", duration: "약 10분", difficulty: "쉬움", available: true },
-  ASCENDING: { name: "오름차순", description: "같은 숫자를 전략적으로 배치하세요", duration: "약 15분", difficulty: "보통", available: false },
-  SECRET_DICE: { name: "시크릿 다이스", description: "감춰진 주사위로 만드는 족보", duration: "약 20분", difficulty: "보통", available: false },
-  INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "약 20분", difficulty: "어려움", available: false }
+  BLACK_AND_WHITE: { name: "흑과 백", description: "색으로 숫자를 추리하는 순차 심리전", duration: "5~10분", difficulty: "쉬움", available: true },
+  ASCENDING: { name: "배틀 오름차순", description: "두 카드 중 하나를 고르고 비내림차순을 완성하세요", duration: "5~10분", difficulty: "보통", available: true },
+  SECRET_DICE: { name: "시크릿 다이스", description: "공격과 수비가 함께 만드는 주사위 족보", duration: "15~25분", difficulty: "보통", available: true },
+  INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true }
 };

@@ -32,6 +32,11 @@ export function registerHandlers(io: Server, socket: Socket, rooms: RoomManager)
     broadcast(room, room.status === "FINISHED" ? "game:finished" : "game:updated"); return undefined;
   }));
 
+  socket.on("game:forfeit", (payload: PlayerRoomPayload, ack?: (value: Ack) => void) => safely(ack, () => {
+    const room = rooms.forfeit(payload.roomCode, payload.playerId, socket.id);
+    broadcast(room, "game:finished"); return undefined;
+  }));
+
   socket.on("room:restart", (payload: PlayerRoomPayload, ack?: (value: Ack) => void) => safely(ack, () => { const room = rooms.restart(payload.roomCode, payload.playerId, socket.id); broadcast(room); return undefined; }));
 
   socket.on("room:leave", (payload: PlayerRoomPayload, ack?: (value: Ack) => void) => safely(ack, () => {
