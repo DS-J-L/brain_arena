@@ -24,5 +24,13 @@ describe("ascendingEngine",()=>{
     expect(state.boards.a[2]).toBeNull();expect(ascendingEngine.getPlayerView(state,"b").opponentHasPlaced).toBe(true);
     state=ascendingEngine.applyAction(state,"b",{type:"PLACE_CARD",position:4});
     expect(state.boards.a[2]).not.toBeNull();expect(state.round).toBe(2);expect(state.chooserId).toBe("b");
+    const playingView=ascendingEngine.getPlayerView(state,"b");
+    expect(playingView.opponentBoard.every(value=>value===null)).toBe(true);
+    expect(playingView.history[0].opponentPosition).toBeUndefined();
+    state.results={a:{longest:1,longestCount:1,longestSum:1,ascendingPairs:0},b:{longest:1,longestCount:1,longestSum:1,ascendingPairs:0}};
+    state.winnerId="DRAW";state.isDraw=true;
+    const finishedView=ascendingEngine.getPlayerView(state,"b");
+    expect(finishedView.opponentBoard[2]).toBe(state.boards.a[2]);
+    expect(finishedView.history[0].opponentPosition).toBe(2);
   });
 });

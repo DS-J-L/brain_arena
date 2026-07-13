@@ -34,7 +34,10 @@ export function registerHandlers(io: Server, socket: Socket, rooms: RoomManager)
 
   socket.on("game:forfeit", (payload: PlayerRoomPayload, ack?: (value: Ack) => void) => safely(ack, () => {
     const room = rooms.forfeit(payload.roomCode, payload.playerId, socket.id);
-    broadcast(room, "game:finished"); return undefined;
+    broadcast(room, "game:finished");
+    socket.leave(room.code);
+    rooms.detachAfterForfeit(room, payload.playerId);
+    return undefined;
   }));
 
   socket.on("room:restart", (payload: PlayerRoomPayload, ack?: (value: Ack) => void) => safely(ack, () => { const room = rooms.restart(payload.roomCode, payload.playerId, socket.id); broadcast(room); return undefined; }));

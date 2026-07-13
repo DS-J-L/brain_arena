@@ -3,10 +3,10 @@ import { Server } from "socket.io";
 import { app } from "./app.js";
 import { RoomManager } from "./rooms/roomManager.js";
 import { registerHandlers } from "./socket/handlers.js";
+import { corsOrigin } from "./config/cors.js";
 
 const httpServer = createServer(app);
-const origins = (process.env.CLIENT_URL ?? "http://localhost:5173").split(",").map(v => v.trim());
-const io = new Server(httpServer, { cors: { origin: origins, credentials: true } });
+const io = new Server(httpServer, { cors: { origin: corsOrigin, credentials: true } });
 const rooms = new RoomManager();
 io.on("connection", socket => { console.log(`[socket] connected ${socket.id}`); registerHandlers(io, socket, rooms); });
 setInterval(() => {

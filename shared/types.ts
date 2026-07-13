@@ -42,7 +42,7 @@ export interface BlackAndWhiteView extends GameViewBase {
 }
 
 export interface AscendingResult { longest: number; longestCount: number; longestSum: number; ascendingPairs: number }
-export interface AscendingRoundView { round: number; offeredCards: [number,number]; myCard: number; opponentCard: number; myPosition: number; opponentPosition: number; chooserId: string }
+export interface AscendingRoundView { round: number; offeredCards: [number,number]; myCard: number; opponentCard?: number; myPosition: number; opponentPosition?: number; chooserId: string }
 export interface AscendingView extends GameViewBase {
   kind: "ASCENDING";
   round: number;
