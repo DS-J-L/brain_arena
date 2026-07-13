@@ -1,5 +1,5 @@
 import type { Server, Socket } from "socket.io";
-import type { Ack, CreateRoomPayload, GameActionPayload, JoinRoomPayload, PlayerRoomPayload } from "@brain-arena/shared";
+import type { Ack, CreatePracticePayload, CreateRoomPayload, GameActionPayload, JoinRoomPayload, PlayerRoomPayload } from "@brain-arena/shared";
 import { RoomManager, type GameRoom } from "../rooms/roomManager.js";
 
 export function registerHandlers(io: Server, socket: Socket, rooms: RoomManager) {
@@ -13,6 +13,13 @@ export function registerHandlers(io: Server, socket: Socket, rooms: RoomManager)
   socket.on("room:create", (payload: CreateRoomPayload, ack?: (value: Ack<{ room: unknown; playerId: string }>) => void) => safely(ack, () => {
     const { room, player } = rooms.create(payload.nickname, payload.gameType, socket.id, payload.playerId);
     socket.join(room.code); console.log(`[room] ${room.code} created by ${player.nickname}`);
+    return { room: rooms.view(room, player.id), playerId: player.id };
+  }));
+
+  socket.on("practice:create", (payload: CreatePracticePayload, ack?: (value: Ack<{ room: unknown; playerId: string }>) => void) => safely(ack, () => {
+    const { room, player } = rooms.createPractice(payload.nickname, payload.gameType, socket.id, payload.playerId);
+    socket.join(room.code);
+    console.log(`[practice] ${room.code} started by ${player.nickname}`);
     return { room: rooms.view(room, player.id), playerId: player.id };
   }));
 

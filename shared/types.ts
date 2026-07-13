@@ -8,6 +8,7 @@ export interface Player {
   isReady: boolean;
   isConnected: boolean;
   isHost: boolean;
+  isBot: boolean;
 }
 
 export interface GameViewBase {
@@ -99,7 +100,7 @@ export interface IndianPokerView extends GameViewBase {
 
 export type NumberOperator = "+" | "-" | "×" | "÷";
 export type NumberCardValue = number | NumberOperator;
-export type FindNumberPhase = "MEMORIZE" | "BUZZER" | "ANSWER_FIRST" | "ANSWER_SECOND" | "REVEAL" | "SOLUTION";
+export type FindNumberPhase = "MEMORIZE" | "BUZZER" | "ANSWER_FIRST" | "ANSWER_SECOND" | "SOLO_ANSWER" | "REVEAL" | "SOLUTION";
 export interface FindNumberRevealView { playerId: string | null; indices: number[]; values: NumberCardValue[]; expression: string; correct: boolean; target: number; reason: "ANSWER" | "NO_BUZZ" }
 export interface FindNumberHistoryView { round: number; target: number; playerId: string | null; expression: string; correct: boolean }
 export interface FindTheNumberView extends GameViewBase {
@@ -112,6 +113,9 @@ export interface FindTheNumberView extends GameViewBase {
   board: Array<NumberCardValue | null>;
   reveal: FindNumberRevealView | null;
   history: FindNumberHistoryView[];
+  practiceSolo: boolean;
+  mistakes: number;
+  maxMistakes: number;
 }
 
 export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView;
@@ -122,10 +126,12 @@ export interface RoomView {
   players: Player[];
   status: RoomStatus;
   gameState: GameView | null;
+  isPractice: boolean;
 }
 
 export interface Ack<T = undefined> { ok: boolean; data?: T; error?: string }
 export interface CreateRoomPayload { nickname: string; gameType: GameType; playerId?: string }
+export interface CreatePracticePayload { nickname: string; gameType: GameType; playerId?: string }
 export interface JoinRoomPayload { nickname: string; roomCode: string; playerId?: string }
 export interface PlayerRoomPayload { roomCode: string; playerId: string }
 export interface GameActionPayload extends PlayerRoomPayload { type: string; payload?: unknown }

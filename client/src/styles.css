@@ -13,7 +13,8 @@
 .number-board button.ascending-highlight{position:relative;border-color:var(--lime);background:#28351d;color:var(--lime);box-shadow:inset 0 0 18px #c8ff4328,0 0 12px #c8ff4333}.number-board button.ascending-highlight+button.ascending-highlight:before{content:"";position:absolute;left:-9px;top:50%;width:10px;height:3px;background:var(--lime);box-shadow:0 0 7px var(--lime)}.ascending-legend{font-size:11px;color:#aca4b7;text-align:center}.ascending-legend i{display:inline-block;width:10px;height:10px;background:var(--lime);box-shadow:0 0 8px var(--lime);margin-right:6px}
 
 /* Detailed game rules */
-.rules-button{margin-top:10px}.home-rule-link{color:#c9c3d3}.rule-modal{width:min(680px,100%);max-width:680px;max-height:calc(100vh - 40px);overflow-y:auto}.rule-modal h2{margin:8px 0 24px}.rule-sections{display:grid;gap:18px}.rule-sections>section{padding:18px 20px;background:#171322;border:1px solid #342c46}.rule-sections h3{font-size:14px;color:#f5f1fb;margin:0 0 10px}.rule-sections ul{margin:0;padding-left:19px}.rule-sections li{margin:6px 0;line-height:1.7}.rule-modal .full{position:sticky;bottom:-35px;box-shadow:0 -12px 20px #1c172b}
+.rules-button{margin-top:10px}.rule-modal{width:min(680px,100%);max-width:680px;max-height:calc(100vh - 40px);overflow-y:auto}.rule-modal h2{margin:8px 0 24px}.rule-sections{display:grid;gap:18px}.rule-sections>section{padding:18px 20px;background:#171322;border:1px solid #342c46}.rule-sections h3{font-size:14px;color:#f5f1fb;margin:0 0 10px}.rule-sections ul{margin:0;padding-left:19px}.rule-sections li{margin:6px 0;line-height:1.7}.rule-modal .full{position:sticky;bottom:-35px;box-shadow:0 -12px 20px #1c172b}
+.practice-button{border-color:#6f9b2f;color:var(--lime);background:#1d2620}.find-score b:last-child{font-size:20px;white-space:nowrap}
 @media(max-width:480px){.rule-modal{padding:26px 20px}.rule-sections>section{padding:15px}.rule-modal .full{bottom:-26px}}
 
 /* End-of-match review */

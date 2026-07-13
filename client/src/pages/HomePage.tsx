@@ -3,16 +3,16 @@ import { GAME_INFO, GAME_TYPES, type GameType } from "@brain-arena/shared";
 import { Logo } from "../components/Logo";
 import { RuleModal } from "../components/RuleModal";
 
-interface Props { nickname: string; setNickname: (v: string) => void; onCreate: (g: GameType) => void; onJoin: (code: string) => void; busy: boolean; error: string }
+interface Props { nickname: string; setNickname: (v: string) => void; onCreate: (g: GameType) => void; onPractice: (g: GameType) => void; onJoin: (code: string) => void; busy: boolean; error: string }
 
-export function HomePage({ nickname, setNickname, onCreate, onJoin, busy, error }: Props) {
+export function HomePage({ nickname, setNickname, onCreate, onPractice, onJoin, busy, error }: Props) {
   const pathCode = location.pathname.match(/^\/join\/([A-Z0-9]{6})$/i)?.[1];
   const [code, setCode] = useState((new URLSearchParams(location.search).get("code") ?? pathCode ?? "").toUpperCase());
   const [selected, setSelected] = useState<GameType>("BLACK_AND_WHITE");
   const [showRules, setShowRules] = useState(false);
 
   return <main>
-    <nav><Logo /><button className="text-button home-rule-link" onClick={() => setShowRules(true)}>선택한 게임 규칙</button></nav>
+    <nav><Logo /></nav>
     <section className="hero">
       <div className="hero-copy"><p className="eyebrow">OUTSMART. OUTPLAY. WIN.</p><h1>친구와 펼치는<br/><em>두뇌의 승부</em></h1><p>회원가입 없이 방을 만들고, 단 하나의 선택으로 상대의 생각을 읽어보세요.</p></div>
       <div className="start-card">
@@ -22,6 +22,7 @@ export function HomePage({ nickname, setNickname, onCreate, onJoin, busy, error 
         <div className="join-row"><input className="code-input" value={code} onChange={event => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} placeholder="6자리 코드"/><button className="secondary" disabled={busy} onClick={() => onJoin(code)}>참가</button></div>
         {error && <p className="error">{error}</p>}
         <button className="primary full" disabled={busy || !GAME_INFO[selected].available} onClick={() => onCreate(selected)}>{busy ? "연결 중..." : GAME_INFO[selected].available ? `${gameName(selected)} 방 만들기` : "규칙 준비 중"}<span>→</span></button>
+        <button className="secondary full practice-button" disabled={busy || !GAME_INFO[selected].available} onClick={() => onPractice(selected)}>{selected === "FIND_THE_NUMBER" ? "혼자 연습하기 · 오답 3회 종료" : "연습 봇과 대전하기"}</button>
         <button className="secondary full rules-button" onClick={() => setShowRules(true)}>{gameName(selected)} 규칙 자세히 보기</button>
       </div>
     </section>
