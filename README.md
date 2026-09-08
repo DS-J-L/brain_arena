@@ -23,12 +23,27 @@ npm test
 npm run build
 ```
 
+## 저장소 구조
+
+```text
+apps/
+├─ web/       # React + Vite 클라이언트
+└─ server/    # Express + Socket.IO 서버
+packages/
+└─ shared/    # 앱 사이에서 공유하는 타입과 이벤트
+docs/
+├─ rules/     # 게임 및 봇 규칙
+└─ audits/    # 저장소 점검 기록
+```
+
+상세 문서는 [`docs/README.md`](./docs/README.md)에서 확인할 수 있습니다.
+
 ## 배포 환경변수
 
 - Render 서버: `CLIENT_URL=https://your-app.vercel.app`
 - Vercel 클라이언트: `VITE_SERVER_URL=https://your-server.onrender.com`
 
-Render의 시작 명령은 `npm install && npm run start -w server`, Vercel의 Root Directory는 `client`로 설정합니다.
+Render의 시작 명령은 `npm install && npm run start -w brain-arena-server`, Vercel의 Root Directory는 `apps/web`으로 설정합니다.
 
 ## 보안 구조
 

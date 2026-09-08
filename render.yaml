@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm run start -w server
+    startCommand: npm run start -w brain-arena-server
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION

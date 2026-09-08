@@ -29,7 +29,7 @@
 | --- | --- | --- | --- |
 | 높음 | 개인 이메일 및 작성자 이름 | 아래 12개 커밋의 Author / Committer | 이메일 공개를 원하지 않으면 과거 이력을 재작성하여 GitHub noreply 이메일과 공개용 이름으로 교체 |
 | 높음 | 향후 커밋에도 같은 정보 사용 | 현재 유효한 Git `user.name`, `user.email`이 과거 작성자 정보와 일치 | 다음 커밋 전에 저장소 단위 작성자 설정 변경 |
-| 참고 | 배포 주소 | `server/src/config/cors.ts:10`, `server/src/config/cors.test.ts:6`의 `brain-arena-xi.vercel.app` | 비밀값은 아니며 서비스 주소 노출 여부만 판단. CORS 설정을 무작정 지우면 접속에 영향 |
+| 참고 | 배포 주소 | `apps/server/src/config/cors.ts:10`, `apps/server/src/config/cors.test.ts:6`의 `brain-arena-xi.vercel.app` | 비밀값은 아니며 서비스 주소 노출 여부만 판단. CORS 설정을 무작정 지우면 접속에 영향 |
 | 예방 | 환경 파일 제외 규칙 범위 | `.gitignore:3`의 `.env` | `.env.local`, `.env.production`도 제외하도록 `.env.*` 및 `!.env.example` 추가 권장. 현재 검사에서는 해당 실제 환경 파일 미발견 |
 
 개인 작성자 정보가 포함된 커밋(최신순):
@@ -56,7 +56,7 @@ e23131a
 - 개인 작성자 이름·이메일의 파일 본문 포함 여부를 별도로 확인했으며 발견되지 않았습니다.
 - 커밋 메시지에서 의심 키워드가 잡힌 두 건은 게임 이름 `Secret Dice`로 확인했습니다.
 - 최초 커밋의 `client/tsconfig.node.tsbuildinfo:1`에서 주민번호 패턴처럼 보인 숫자 두 건은 64자리 16진수 해시 일부로 확인했습니다.
-- `client/.env.example`, `server/.env.example`에는 localhost 주소와 포트만 있습니다. `render.yaml`에도 실제 인증정보는 발견되지 않았습니다.
+- `apps/web/.env.example`, `apps/server/.env.example`에는 localhost 주소와 포트만 있습니다. `render.yaml`에도 실제 인증정보는 발견되지 않았습니다.
 - 이미지 두 개는 로고이며, PNG 청크에 EXIF·텍스트 메타데이터는 없었습니다.
 - 추적되지 않은 일반 파일은 없었습니다. `.git`, `node_modules`, `dist`를 제외한 로컬 파일 목록에서 실제 `.env`, 키 파일, DB·CSV·로그·ZIP 후보는 발견되지 않았습니다.
 

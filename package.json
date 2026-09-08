@@ -1,11 +1,11 @@
 {
   "name": "brain-arena",
   "private": true,
-  "workspaces": ["client", "server", "shared"],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "concurrently -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
-    "build": "npm run typecheck -w shared && npm run build -w server && npm run build -w client",
-    "test": "npm run test -w server"
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm run dev -w brain-arena-server\" \"npm run dev -w brain-arena-web\"",
+    "build": "npm run typecheck -w @brain-arena/shared && npm run build -w brain-arena-server && npm run build -w brain-arena-web",
+    "test": "npm run test -w brain-arena-server"
   },
   "devDependencies": { "concurrently": "^9.1.2" }
 }

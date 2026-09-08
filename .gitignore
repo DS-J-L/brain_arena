@@ -7,5 +7,5 @@ dist
 .DS_Store
 *.log
 *.tsbuildinfo
-client/vite.config.js
-client/vite.config.d.ts
+apps/web/vite.config.js
+apps/web/vite.config.d.ts

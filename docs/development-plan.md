@@ -594,55 +594,28 @@ interface GameEngine<State, Action> {
 
 ```text
 project/
-├─ client/
-│  ├─ src/
-│  │  ├─ components/
-│  │  │  ├─ GameHeader.tsx
-│  │  │  ├─ PlayerPanel.tsx
-│  │  │  ├─ RoomCode.tsx
-│  │  │  ├─ TurnTimer.tsx
-│  │  │  ├─ RuleModal.tsx
-│  │  │  └─ ResultModal.tsx
-│  │  ├─ games/
-│  │  │  ├─ black-and-white/
-│  │  │  ├─ ascending/
-│  │  │  ├─ secret-dice/
-│  │  │  └─ indian-poker/
-│  │  ├─ pages/
-│  │  │  ├─ HomePage.tsx
-│  │  │  ├─ GameSelectPage.tsx
-│  │  │  ├─ LobbyPage.tsx
-│  │  │  ├─ RoomPage.tsx
-│  │  │  └─ ResultPage.tsx
-│  │  ├─ socket/
-│  │  │  └─ socket.ts
-│  │  ├─ stores/
-│  │  ├─ types/
-│  │  └─ App.tsx
-│  └─ package.json
-│
-├─ server/
-│  ├─ src/
-│  │  ├─ games/
-│  │  │  ├─ blackAndWhiteEngine.ts
-│  │  │  ├─ ascendingEngine.ts
-│  │  │  ├─ secretDiceEngine.ts
-│  │  │  └─ indianPokerEngine.ts
-│  │  ├─ rooms/
-│  │  │  ├─ roomManager.ts
-│  │  │  └─ roomTypes.ts
-│  │  ├─ socket/
-│  │  │  ├─ roomHandlers.ts
-│  │  │  └─ gameHandlers.ts
-│  │  ├─ utils/
-│  │  ├─ app.ts
-│  │  └─ index.ts
-│  └─ package.json
-│
-├─ shared/
-│  ├─ events.ts
-│  └─ types.ts
-│
+├─ apps/
+│  ├─ web/
+│  │  └─ src/
+│  │     ├─ components/
+│  │     ├─ pages/
+│  │     └─ socket/
+│  └─ server/
+│     └─ src/
+│        ├─ bots/
+│        ├─ config/
+│        ├─ games/
+│        ├─ rooms/
+│        └─ socket/
+├─ packages/
+│  └─ shared/
+│     └─ src/
+│        ├─ events.ts
+│        ├─ index.ts
+│        └─ types.ts
+├─ docs/
+│  ├─ audits/
+│  └─ rules/
 └─ README.md
 ```
 
