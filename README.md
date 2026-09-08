@@ -48,3 +48,9 @@ Render의 시작 명령은 `npm install && npm run start -w brain-arena-server`,
 ## 보안 구조
 
 방과 전체 게임 상태는 서버 메모리에만 저장됩니다. 서버는 각 플레이어에게 `getPlayerView()`로 만든 개별 뷰를 전송하므로, 상대방이 낸 실제 숫자는 게임 종료 전 클라이언트에 전달되지 않습니다. 타일 소유권, 중복 사용, 플레이어/소켓 일치, 승패 계산도 모두 서버에서 검증합니다.
+
+## 라이선스
+
+Copyright 2026 DS-J-L.
+
+이 프로젝트는 [Apache License 2.0](./LICENSE)에 따라 배포됩니다. 저작권 및 출처 고지는 [NOTICE](./NOTICE)를 참고하세요.

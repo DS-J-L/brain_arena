@@ -1,6 +1,7 @@
 {
   "name": "brain-arena",
   "private": true,
+  "license": "Apache-2.0",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "concurrently -n server,web -c cyan,magenta \"npm run dev -w brain-arena-server\" \"npm run dev -w brain-arena-web\"",

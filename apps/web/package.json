@@ -2,6 +2,7 @@
   "name": "brain-arena-web",
   "private": true,
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": { "dev": "vite", "build": "tsc --noEmit -p tsconfig.app.json && vite build", "preview": "vite preview" },
   "dependencies": { "@brain-arena/shared": "*", "@vitejs/plugin-react": "^4.4.1", "vite": "^6.3.4", "react": "^19.1.0", "react-dom": "^19.1.0", "react-router-dom": "^7.5.3", "socket.io-client": "^4.8.1" },
