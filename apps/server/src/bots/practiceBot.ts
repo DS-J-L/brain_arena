@@ -1,4 +1,4 @@
-import { SCORE_CATEGORIES, type GameView, type ScoreCategory } from "@brain-arena/shared";
+import { SCORE_CATEGORIES, findAllHaps, hapKey, type GameView, type ScoreCategory } from "@brain-arena/shared";
 import { scoreDice } from "../games/secretDiceEngine.js";
 
 export interface BotDecision { type: string; payload?: Record<string, unknown> }
@@ -212,6 +212,17 @@ export function decidePracticeBot(view: GameView, botId: string): BotDecision | 
     case "SECRET_DICE": return decideSecretDice(view, botId);
     case "INDIAN_POKER": return decidePoker(view, botId);
     case "FIND_THE_NUMBER": return null;
+    case "GYEOL_HAP": {
+      if (view.currentPlayerId !== botId || (view.phase !== "TURN" && view.phase !== "SELECT")) return null;
+      // Think only from the same public board and found-answer history as a human.
+      const found = new Set(view.foundHaps.map(answer => hapKey(answer.numbers)));
+      const remaining = findAllHaps(view.board).filter(answer => !found.has(hapKey(answer)));
+      const context = { round: view.round, turnId: view.turnId };
+      if (view.phase === "SELECT") return remaining.length ? { type: "SUBMIT_HAP", payload: { ...context, numbers: noisyPick(remaining) } } : null;
+      // Occasional extra thinking gives the human some breathing room.
+      if (Math.random() < .25) return null;
+      return { type: remaining.length ? "HAP" : "GYEOL", payload: context };
+    }
   }
 }
 
