@@ -36,5 +36,55 @@
 
 /* Find the Number */
 @media(min-width:801px){.game-grid{grid-template-columns:repeat(5,1fr)}.game-card{min-height:315px}.game-symbol{font-size:56px}}
-.symbol-4{color:#ff718c}.find-score{display:grid;grid-template-columns:80px 1fr 80px;align-items:center;margin:28px 0;background:#181426;border:1px solid var(--line);text-align:center}.find-score b{padding:13px;font:34px "DM Mono";color:var(--lime)}.find-score span{padding:17px 8px;border-left:1px solid var(--line);border-right:1px solid var(--line);font-size:12px;color:#c0b9ca}.target-number{width:250px;margin:28px auto;padding:18px;text-align:center;background:#24183a;border:1px solid #674997;box-shadow:0 0 28px #8e5cff22}.target-number small,.target-number strong{display:block}.target-number small{font-size:8px;color:#968ca4}.target-number strong{font:52px "DM Mono";color:var(--lime)}.memory-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:650px;margin:28px auto}.memory-board button,.final-memory-board>div{position:relative;min-height:105px;display:grid;place-items:center;padding:10px;background:linear-gradient(145deg,#211a32,#171322);border:1px solid #453858;color:#f6f3ff;transition:.18s}.memory-board button:not(:disabled):hover,.memory-board button.selected{border-color:var(--lime);transform:translateY(-4px);box-shadow:0 8px 20px #0007}.memory-board button:disabled{cursor:default}.memory-board small{position:absolute;top:7px;left:8px;font-size:8px;color:#776e85}.memory-board strong{font:30px "DM Mono"}.memory-board button em{position:absolute;right:7px;top:7px;width:21px;height:21px;display:grid;place-items:center;border-radius:50%;background:var(--lime);color:#17121e;font:10px "DM Mono"}.memory-board.memorizing button{background:#eeeaf3;color:#17121e;border:4px double #655775;animation:result-card-flip .4s ease-out both}.memory-hint,.answer-wait{text-align:center;color:var(--muted);font-size:12px}.buzzer{width:170px;height:170px;display:grid;place-items:center;align-content:center;gap:4px;margin:30px auto;border-radius:50%;border:8px solid #5f2436;background:radial-gradient(circle at 40% 30%,#ff7891,#b62f51 60%,#701f36);color:white;box-shadow:0 12px 0 #501426,0 18px 35px #0008;transition:.12s}.buzzer:hover{transform:translateY(-4px);box-shadow:0 16px 0 #501426,0 22px 40px #0008}.buzzer:active{transform:translateY(8px);box-shadow:0 4px 0 #501426}.buzzer span{font:25px "DM Mono";font-weight:700}.buzzer small{font-size:9px}.number-answer{text-align:center;padding:20px;background:#181426;border:1px solid var(--line)}.number-answer p{font-size:12px;color:#b5adbf}.number-answer>div{min-height:45px;display:flex;justify-content:center;gap:8px;margin:12px}.number-answer>div span{width:40px;height:40px;display:grid;place-items:center;background:var(--lime);color:#17121e;font:17px "DM Mono"}.number-reveal{max-width:620px;margin:25px auto;padding:25px;text-align:center;background:#181426;border:1px solid #51435f;animation:result-enter .25s ease-out both}.number-reveal.correct{border-color:#718d2c}.number-reveal.wrong{border-color:#633040}.number-reveal strong,.number-reveal b{display:block}.number-reveal strong{margin:13px;font:24px "DM Mono"}.number-reveal.correct b{color:var(--lime)}.number-reveal.wrong b{color:#ff7891}.final-memory-board{margin-bottom:30px}.number-history{display:grid;gap:8px}.number-history>div{display:grid;grid-template-columns:130px 1fr 180px;align-items:center;gap:12px;padding:13px 16px;background:#171322;border:1px solid var(--line)}.number-history>div.correct{border-left:3px solid var(--lime)}.number-history>div.wrong{border-left:3px solid #ff7891}.number-history span{font:9px "DM Mono";color:#8f879a}.number-history strong{font-size:13px}.number-history b{text-align:right;font-size:10px}.number-history .correct b{color:var(--lime)}.number-history .wrong b{color:#ff7891}
+.symbol-4{color:#ff718c}.find-score{display:grid;grid-template-columns:80px 1fr 80px;align-items:center;margin:28px 0;background:#181426;border:1px solid var(--line);text-align:center}.find-score b{padding:13px;font:34px "DM Mono";color:var(--lime)}.find-score span{padding:17px 8px;border-left:1px solid var(--line);border-right:1px solid var(--line);font-size:12px;color:#c0b9ca}.target-number{width:250px;margin:28px auto;padding:18px;text-align:center;background:#24183a;border:1px solid #674997;box-shadow:0 0 28px #8e5cff22}.target-number small,.target-number strong{display:block}.target-number small{font-size:8px;color:#968ca4}.target-number strong{font:52px "DM Mono";color:var(--lime)}.memory-board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:650px;margin:28px auto}.final-memory-board>div{position:relative;min-height:105px;display:grid;place-items:center;padding:10px;background:linear-gradient(145deg,#211a32,#171322);border:1px solid #453858;color:#f6f3ff;transition:.18s}.memory-board button:disabled{cursor:default}.memory-board small{position:absolute;top:7px;left:8px;font-size:8px;color:#776e85}.memory-board strong{font:30px "DM Mono"}.memory-board button em{position:absolute;right:7px;top:7px;width:21px;height:21px;display:grid;place-items:center;border-radius:50%;background:var(--lime);color:#17121e;font:10px "DM Mono"}.memory-hint,.answer-wait{text-align:center;color:var(--muted);font-size:12px}.buzzer{width:170px;height:170px;display:grid;place-items:center;align-content:center;gap:4px;margin:30px auto;border-radius:50%;border:8px solid #5f2436;background:radial-gradient(circle at 40% 30%,#ff7891,#b62f51 60%,#701f36);color:white;box-shadow:0 12px 0 #501426,0 18px 35px #0008;transition:.12s}.buzzer:hover{transform:translateY(-4px);box-shadow:0 16px 0 #501426,0 22px 40px #0008}.buzzer:active{transform:translateY(8px);box-shadow:0 4px 0 #501426}.buzzer span{font:25px "DM Mono";font-weight:700}.buzzer small{font-size:9px}.number-answer{text-align:center;padding:20px;background:#181426;border:1px solid var(--line)}.number-answer p{font-size:12px;color:#b5adbf}.number-answer>div{min-height:45px;display:flex;justify-content:center;gap:8px;margin:12px}.number-answer>div span{width:40px;height:40px;display:grid;place-items:center;background:var(--lime);color:#17121e;font:17px "DM Mono"}.number-reveal{max-width:620px;margin:25px auto;padding:25px;text-align:center;background:#181426;border:1px solid #51435f;animation:result-enter .25s ease-out both}.number-reveal.correct{border-color:#718d2c}.number-reveal.wrong{border-color:#633040}.number-reveal strong,.number-reveal b{display:block}.number-reveal strong{margin:13px;font:24px "DM Mono"}.number-reveal.correct b{color:var(--lime)}.number-reveal.wrong b{color:#ff7891}.final-memory-board{margin-bottom:30px}.number-history{display:grid;gap:8px}.number-history>div{display:grid;grid-template-columns:130px 1fr 180px;align-items:center;gap:12px;padding:13px 16px;background:#171322;border:1px solid var(--line)}.number-history>div.correct{border-left:3px solid var(--lime)}.number-history>div.wrong{border-left:3px solid #ff7891}.number-history span{font:9px "DM Mono";color:#8f879a}.number-history strong{font-size:13px}.number-history b{text-align:right;font-size:10px}.number-history .correct b{color:var(--lime)}.number-history .wrong b{color:#ff7891}
 @media(max-width:600px){.memory-board{gap:6px}.memory-board button,.final-memory-board>div{min-height:78px}.memory-board strong{font-size:23px}.find-score{grid-template-columns:52px 1fr 52px}.find-score b{font-size:25px;padding:10px}.find-score span{font-size:10px}.number-history>div{grid-template-columns:1fr}.number-history b{text-align:left}.buzzer{width:145px;height:145px}}
+
+/* Two persistent faces make both hiding and revealing a visible half-turn. */
+.memory-card {
+  position: relative;
+  min-height: 105px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f6f3ff;
+  perspective: 800px;
+  transition: transform 180ms ease;
+}
+.memory-card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform 600ms cubic-bezier(.4, 0, .2, 1);
+}
+.memory-card.is-face-up .memory-card-inner { transform: rotateY(180deg); }
+.memory-card-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #453858;
+  border-radius: 6px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  box-shadow: 0 6px 16px #0005;
+}
+.memory-card-back {
+  background: repeating-linear-gradient(135deg, #211a32 0 10px, #261e3a 10px 20px);
+}
+.memory-card-back strong { color: #d8c5ff; }
+.memory-card-front {
+  transform: rotateY(180deg);
+  background: linear-gradient(145deg, #f6f2fb, #ded7e8);
+  color: #17121e;
+  border: 4px double #655775;
+}
+.memory-card:not(:disabled):hover, .memory-card.selected { transform: translateY(-4px); }
+.memory-card:not(:disabled):hover .memory-card-face, .memory-card.selected .memory-card-face {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 2px #c8ff4340, 0 8px 20px #0007;
+}
+.memory-card:focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .memory-card, .memory-card-inner { transition: none; }
+}
