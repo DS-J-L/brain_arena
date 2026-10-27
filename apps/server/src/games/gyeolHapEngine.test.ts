@@ -171,15 +171,16 @@ describe("시간과 입력 검증", () => {
     expect(state.lastResult?.delta).toBe(3);
     expect(state.phase).toBe("ROUND_END");
   });
-  it("합 승인부터 별도 5초이며 재선언으로 늘릴 수 없다", () => {
+  it("자기 차례는 15초이고 합 승인부터 별도 10초이며 재선언으로 늘릴 수 없다", () => {
     const state = initial();
-    vi.advanceTimersByTime(9_000);
+    expect(state.deadline! - Date.now()).toBe(15_000);
+    vi.advanceTimersByTime(14_000);
     const next = act(state, { type: "HAP" });
-    expect(next.deadline! - Date.now()).toBe(5_000);
+    expect(next.deadline! - Date.now()).toBe(10_000);
     expect(() => act(next, { type: "HAP" })).toThrow();
     expect(() => act(next, { type: "GYEOL" })).toThrow();
   });
-  it("10초 만료는 무감점 패스, 합 5초 만료는 -1이며 실패 턴에 포함한다", () => {
+  it("15초 만료는 무감점 패스, 합 10초 만료는 -1이며 실패 턴에 포함한다", () => {
     const pass = advance(initial());
     expect(pass.lastResult?.reason).toBe("PASS");
     expect(pass.scores.a).toBe(0);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { HAP_ROUNDS, HAP_STALL_TURNS, type GyeolHapView, type HapAttempt, type HapCheck, type HapTile } from "@brain-arena/shared";
+import { checkHap, HAP_ROUNDS, HAP_STALL_TURNS, type GyeolHapView, type HapAttempt, type HapCheck, type HapTile } from "@brain-arena/shared";
 
 const shapes = { CIRCLE: "원", STAR: "별", TRIANGLE: "삼각형", SQUARE: "사각형", SUN: "해" };
 const colors = { PURPLE: "보라", GREEN: "녹색", ORANGE: "주황", YELLOW: "노랑" };
@@ -58,7 +58,7 @@ export function GyeolHapGame({ game, playerId, opponentName, emit }: { game: Gye
   const deciding = mine && game.phase === "TURN" && live;
   const opponentId = Object.keys(game.scores).find(id => id !== playerId)!;
   const status = game.phase === "ROUND_END" ? game.round === HAP_ROUNDS ? "3라운드 종료 · 최종 점수 집계 중" : game.lastResult?.reason === "GYEOL" ? "결 성공 · 다음 보드 준비 중" : "4턴 동안 새 합을 못 찾았습니다 · 다음 보드 준비 중" : game.phase === "RESULT" ? "판정 결과 확인 중"
-    : game.phase === "SELECT" ? mine ? selected.length === 3 ? "판정 중입니다" : "5초 안에 타일 3개를 고르면 바로 판정합니다" : `${opponentName}님이 합을 선택 중입니다`
+    : game.phase === "SELECT" ? mine ? selected.length === 3 ? "판정 중입니다" : "10초 안에 타일 3개를 고르면 바로 판정합니다" : `${opponentName}님이 합을 선택 중입니다`
       : mine ? "내 차례 · 합을 찾거나 결을 선언하세요" : `${opponentName}님의 차례`;
   const send = (type: string, numbers?: number[]) => emit("game:action", { type, payload: { round: game.round, turnId: game.turnId, ...(numbers ? { numbers } : {}) } });
   const pick = (number: number) => {
@@ -82,16 +82,34 @@ export function GyeolHapGame({ game, playerId, opponentName, emit }: { game: Gye
     </div>}
     <section className="hap-found"><h3>이번 라운드에서 찾은 합 <span>{game.foundHaps.length}개</span></h3>
       {game.foundHaps.length === 0 ? <p className="muted">아직 찾은 합이 없습니다.</p> : <ul>{game.foundHaps.map(found => <li key={found.numbers.join(",")}><b>{found.numbers.join(" · ")}</b><span>{found.playerId === playerId ? "나" : opponentName}</span></li>)}</ul>}
-      <p className="hap-hint">속성마다 모두 같거나 모두 달라야 합입니다. 찾은 타일도 다시 사용할 수 있습니다.</p><p className="hap-hint">새 합을 못 찾은 차례 {game.unsuccessfulTurns}/{HAP_STALL_TURNS} · 합이 남아 있으면 4턴 후 새 보드로 넘어갑니다.</p><p className="hap-hint">총 3라운드 누적 점수 대결 · 10초 무응답은 패스, 합 선언 후 5초 초과는 −1점</p>
+      <p className="hap-hint">속성마다 모두 같거나 모두 달라야 합입니다. 찾은 타일도 다시 사용할 수 있습니다.</p><p className="hap-hint">새 합을 못 찾은 차례 {game.unsuccessfulTurns}/{HAP_STALL_TURNS} · 합이 남아 있으면 4턴 후 새 보드로 넘어갑니다.</p><p className="hap-hint">총 3라운드 누적 점수 대결 · 15초 무응답은 패스, 합 선언 후 10초 초과는 −1점</p>
     </section>
   </div>;
 }
 
+function HapReviewCombination({ board, numbers, checks, label }: { board: HapTile[]; numbers: number[]; checks: HapCheck; label: string }) {
+  return <div className="hap-review-answer">
+    <p className="hap-combination-label">{label}</p>
+    <strong>{numbers.join(" · ")}</strong>
+    <div className="hap-combination-tiles" role="group" aria-label={`${label}: ${numbers.join(" · ")}`}>
+      {numbers.map(number => {
+        const tile = board[number - 1];
+        return <div key={number} className="hap-tile" style={{ background: backgroundFills[tile.backgroundColor], color: tile.backgroundColor === "WHITE" ? "#17121e" : "#fff" }}
+          role="img" aria-label={`${number}번 · ${shapes[tile.shape]} · ${colors[tile.shapeColor]} · ${backgrounds[tile.backgroundColor]} 배경`}>
+          <span className="hap-tile-number">{number}</span><HapShape tile={tile} />
+        </div>;
+      })}
+    </div>
+    <Checks checks={checks} />
+  </div>;
+}
+
 export function GyeolHapReview({ game, playerId, opponentName }: { game: GyeolHapView; playerId: string; opponentName: string }) {
-  return <section className="match-review hap-review"><div className="review-heading"><div><p className="eyebrow">MATCH REVIEW</p><h2>놓친 합과 판정 복기</h2></div><p>라운드를 열어 보드와 답변의 속성별 판정 이유를 확인하세요.</p></div>
-    {game.history.map(round => <details key={round.round}><summary>{round.round}라운드 · 찾은 합 {round.foundHaps.length}개 · 놓친 합 {round.missedHaps.length}개 · {round.endReason === "GYEOL" ? "결 성공" : round.endReason === "STALLED" ? "4턴 동안 새 합 없음" : "기권 종료"}</summary>
+  return <section className="match-review hap-review"><div className="review-heading"><div><p className="eyebrow">MATCH REVIEW</p><h2>합 조합과 판정 복기</h2></div><p>찾은 합과 찾지 못한 합을 타일 조합과 속성별 판정으로 확인하세요.</p></div>
+    {game.history.map(round => <details key={round.round} open><summary>{round.round}라운드 · 찾은 합 {round.foundHaps.length}개 · 찾지 못한 합 {round.missedHaps.length}개 · {round.endReason === "GYEOL" ? "결 성공" : round.endReason === "STALLED" ? "4턴 동안 새 합 없음" : "기권 종료"}</summary>
       <HapBoard board={round.board} />
-      <h3>놓친 합</h3>{round.missedHaps.length === 0 ? <p>모든 합을 찾았습니다.</p> : round.missedHaps.map(answer => <div className="hap-review-answer" key={answer.numbers.join(",")}><strong>{answer.numbers.join(" · ")}</strong><Checks checks={answer.checks} /></div>)}
+      <h3>찾지 못한 합 · {round.missedHaps.length}개</h3>{round.missedHaps.length === 0 ? <p>찾지 못한 합이 없습니다.</p> : round.missedHaps.map(answer => <HapReviewCombination key={answer.numbers.join(",")} board={round.board} numbers={answer.numbers} checks={answer.checks} label="찾지 못한 합" />)}
+      <h3>찾은 합 · {round.foundHaps.length}개</h3>{round.foundHaps.length === 0 ? <p>찾은 합이 없습니다.</p> : round.foundHaps.map(answer => <HapReviewCombination key={answer.numbers.join(",")} board={round.board} numbers={answer.numbers} checks={checkHap(answer.numbers.map(number => round.board[number - 1]))} label={`찾은 합 · ${answer.playerId === playerId ? "나" : opponentName}`} />)}
       <h3>제출과 진행 기록</h3>{round.attempts.map((attempt, index) => <div className="hap-review-answer" key={index}><p>{attempt.playerId === playerId ? "나" : opponentName} · {attempt.numbers.join(" · ")} {reasons[attempt.reason]} · {attempt.delta > 0 ? "+" : ""}{attempt.delta}점</p>{attempt.checks && <Checks checks={attempt.checks} />}</div>)}
     </details>)}
   </section>;

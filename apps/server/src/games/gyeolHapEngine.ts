@@ -84,7 +84,7 @@ export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): Gy
     next.currentPlayerId = other(next, next.currentPlayerId);
     next.turnId++;
     next.phase = "TURN";
-    next.deadline = now + 10_000;
+    next.deadline = now + 15_000;
     next.lastResult = null;
   } else {
     const [a, b] = next.playerIds;
@@ -106,7 +106,7 @@ export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): Gy
     next.attempts = [];
     next.lastResult = null;
     next.phase = "TURN";
-    next.deadline = now + 10_000;
+    next.deadline = now + 15_000;
   }
   return next;
 }
@@ -114,7 +114,7 @@ export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): Gy
 export function createGyeolHapState(playerIds: string[], kind: HapGameType = "GYEOL_HAP"): GyeolHapState {
     if (playerIds.length !== 2 || new Set(playerIds).size !== 2) throw new Error("서로 다른 두 명의 플레이어가 필요합니다.");
     const board = createHapBoard(kind), firstPlayerId = playerIds[Math.floor(Math.random() * 2)];
-    return { kind, usedBoardKeys: [boardKey(board)], playerIds: [...playerIds], firstPlayerId, currentPlayerId: firstPlayerId, round: 1, turnId: 1, phase: "TURN", board, allHaps: findAllHaps(board), foundHaps: [], scores: Object.fromEntries(playerIds.map(id => [id, 0])), unsuccessfulTurns: 0, lastResult: null, attempts: [], history: [], winnerId: null, isDraw: false, deadline: Date.now() + 10_000 };
+    return { kind, usedBoardKeys: [boardKey(board)], playerIds: [...playerIds], firstPlayerId, currentPlayerId: firstPlayerId, round: 1, turnId: 1, phase: "TURN", board, allHaps: findAllHaps(board), foundHaps: [], scores: Object.fromEntries(playerIds.map(id => [id, 0])), unsuccessfulTurns: 0, lastResult: null, attempts: [], history: [], winnerId: null, isDraw: false, deadline: Date.now() + 15_000 };
 }
 
 export const gyeolHapEngine: GameEngine<GyeolHapState, GyeolHapAction, GyeolHapView> = {
@@ -132,7 +132,7 @@ export const gyeolHapEngine: GameEngine<GyeolHapState, GyeolHapAction, GyeolHapV
     const next = structuredClone(state), now = Date.now();
     if (action.type === "HAP") {
       next.phase = "SELECT";
-      next.deadline = now + 5_000;
+      next.deadline = now + 10_000;
       return next;
     }
     if (action.type === "GYEOL") {
