@@ -1,4 +1,4 @@
-export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP"] as const;
+export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP"] as const;
 export type GameType = (typeof GAME_TYPES)[number];
 export type RoomStatus = "WAITING" | "PLAYING" | "FINISHED";
 
@@ -126,6 +126,13 @@ export interface HapTile {
   shapeColor: (typeof HAP_COLORS)[number];
   backgroundColor: (typeof HAP_BACKGROUNDS)[number];
 }
+export type HapGameType = "GYEOL_HAP_1" | "GYEOL_HAP";
+export const HAP_ROUNDS = 3;
+export const HAP_STALL_TURNS = 4;
+export const HAP_MODES = {
+  GYEOL_HAP_1: { shapes: HAP_SHAPES.slice(0, 3), colors: HAP_COLORS.slice(0, 3), backgrounds: HAP_BACKGROUNDS },
+  GYEOL_HAP: { shapes: HAP_SHAPES, colors: HAP_COLORS, backgrounds: HAP_BACKGROUNDS },
+} as const;
 export type HapAttribute = keyof HapTile;
 export type HapCheck = Record<HapAttribute, "SAME" | "DIFFERENT" | "TWO_SAME">;
 export interface FoundHap { numbers: number[]; playerId: string }
@@ -142,10 +149,10 @@ export interface HapRoundReview {
   foundHaps: FoundHap[];
   missedHaps: Array<{ numbers: number[]; checks: HapCheck }>;
   attempts: HapAttempt[];
-  endReason: "GYEOL" | "PASSES" | "FORFEIT";
+  endReason: "GYEOL" | "STALLED" | "FORFEIT";
 }
 export interface GyeolHapView extends GameViewBase {
-  kind: "GYEOL_HAP";
+  kind: HapGameType;
   phase: "TURN" | "SELECT" | "RESULT" | "ROUND_END";
   round: number;
   turnId: number;
@@ -153,7 +160,7 @@ export interface GyeolHapView extends GameViewBase {
   board: HapTile[];
   scores: Record<string, number>;
   foundHaps: FoundHap[];
-  consecutivePasses: number;
+  unsuccessfulTurns: number;
   lastResult: HapAttempt | null;
   history: HapRoundReview[];
 }
@@ -182,5 +189,6 @@ export const GAME_INFO: Record<GameType, { name: string; description: string; du
   SECRET_DICE: { name: "시크릿 다이스", description: "공격과 수비가 함께 만드는 주사위 족보", duration: "15~25분", difficulty: "보통", available: true },
   INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true },
   FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true },
-  GYEOL_HAP: { name: "결! 합!", description: "세 속성의 합을 찾고, 남은 합이 없다면 결을 선언하세요", duration: "10~20분", difficulty: "보통", available: true }
+  GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true },
+  GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true }
 };

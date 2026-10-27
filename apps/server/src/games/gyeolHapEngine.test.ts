@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { checkHap, findAllHaps, hapKey, HAP_BACKGROUNDS, HAP_COLORS, HAP_SHAPES, isHap, type HapTile } from "@brain-arena/shared";
-import { advanceGyeolHapPhase, createHapBoard, gyeolHapEngine as engine, type GyeolHapAction, type GyeolHapState } from "./gyeolHapEngine.js";
+import { advanceGyeolHapPhase, createHapBoard, createGyeolHapState, gyeolHapEngine as engine, type GyeolHapAction, type GyeolHapState } from "./gyeolHapEngine.js";
 
 const tile = (shape = 0, color = 0, background = 0): HapTile => ({ shape: HAP_SHAPES[shape], shapeColor: HAP_COLORS[color], backgroundColor: HAP_BACKGROUNDS[background] });
 // A deliberately simple legal board with known answers, including 1·2·3.
@@ -27,6 +27,26 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-26T00:
 afterEach(() => vi.useRealTimers());
 
 describe("합 판정", () => {
+  it.each(["GYEOL_HAP_1", "GYEOL_HAP"] as const)("%s의 속성 구성과 서로 다른 3개 보드를 유지한다", kind => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      let state = createGyeolHapState(["a", "b"], kind);
+      const seen: string[] = [];
+      for (let round = 1; round <= 3; round++) {
+        expect(state.round).toBe(round);
+        expect(state.kind).toBe(kind);
+        expect(state.board).toHaveLength(9);
+        const key = state.board.map(tile => JSON.stringify(tile)).sort().join(";");
+        expect(seen).not.toContain(key); seen.push(key);
+        if (kind === "GYEOL_HAP_1") expect(state.board.every(t => HAP_SHAPES.slice(0, 3).includes(t.shape) && HAP_COLORS.slice(0, 3).includes(t.shapeColor))).toBe(true);
+        state = advance(finishRound(state));
+      }
+      expect(state.round).toBe(3);
+      expect(state.usedBoardKeys).toHaveLength(3);
+      expect(engine.getResult(state)).not.toBeNull();
+      expect(engine.getPlayerView(state, "a").history).toHaveLength(3);
+    } finally { vi.restoreAllMocks(); }
+  });
   it("각 속성의 27개 패턴 중 모두 1 또는 3인 8개만 통과한다", () => {
     let passed = 0;
     for (let shape = 1; shape <= 3; shape++) for (let color = 1; color <= 3; color++) for (let bg = 1; bg <= 3; bg++) {
@@ -120,6 +140,37 @@ describe("점수와 차례", () => {
 });
 
 describe("시간과 입력 검증", () => {
+  it("패스·합 오답·결 오답·중복 답변을 모두 세어 네 번째 실패에 종료한다", () => {
+    let state = advance(advance(initial()));
+    state = advance(act(act(state, { type: "HAP" }), { type: "SUBMIT_HAP", numbers: [1, 2, 4] }));
+    state = advance(act(state, { type: "GYEOL" }));
+    expect(state.unsuccessfulTurns).toBe(3);
+    state.foundHaps.push({ numbers: [1, 2, 3], playerId: "a" });
+    state = act(act(state, { type: "HAP" }), { type: "SUBMIT_HAP", numbers: [3, 2, 1] });
+    expect(state.unsuccessfulTurns).toBe(4);
+    expect(state.phase).toBe("ROUND_END");
+    expect(state.history[0].endReason).toBe("STALLED");
+  });
+  it("합 선언과 부분 선택만으로 횟수를 지우지 않고 새 합 정답만 초기화한다", () => {
+    let state = initial(); state.unsuccessfulTurns = 3;
+    state = act(state, { type: "HAP" });
+    expect(state.unsuccessfulTurns).toBe(3);
+    state = act(state, { type: "SUBMIT_HAP", numbers: [1, 2, 3] });
+    expect(state.unsuccessfulTurns).toBe(0);
+    expect(state.phase).toBe("RESULT");
+    state = advance(advance(state));
+    expect(state.unsuccessfulTurns).toBe(1);
+  });
+  it("남은 합이 없으면 네 번 무응답이어도 결 선언과 보너스 기회를 유지한다", () => {
+    let state = initial();
+    state.foundHaps = state.allHaps.map(numbers => ({ numbers, playerId: "a" }));
+    for (let i = 0; i < 4; i++) state = advance(advance(state));
+    expect(state.phase).toBe("TURN");
+    expect(state.round).toBe(1);
+    state = act(state, { type: "GYEOL" });
+    expect(state.lastResult?.delta).toBe(3);
+    expect(state.phase).toBe("ROUND_END");
+  });
   it("합 승인부터 별도 5초이며 재선언으로 늘릴 수 없다", () => {
     const state = initial();
     vi.advanceTimersByTime(9_000);
@@ -128,27 +179,28 @@ describe("시간과 입력 검증", () => {
     expect(() => act(next, { type: "HAP" })).toThrow();
     expect(() => act(next, { type: "GYEOL" })).toThrow();
   });
-  it("10초 만료는 무감점 패스, 합 5초 만료는 -1이며 패스를 초기화한다", () => {
+  it("10초 만료는 무감점 패스, 합 5초 만료는 -1이며 실패 턴에 포함한다", () => {
     const pass = advance(initial());
     expect(pass.lastResult?.reason).toBe("PASS");
     expect(pass.scores.a).toBe(0);
-    expect(pass.consecutivePasses).toBe(1);
+    expect(pass.unsuccessfulTurns).toBe(1);
     const selected = act(advance(pass), { type: "HAP" });
     const timeout = advance(selected);
     expect(timeout.lastResult?.reason).toBe("TIMEOUT");
     expect(timeout.scores.b).toBe(-1);
-    expect(timeout.consecutivePasses).toBe(0);
+    expect(timeout.unsuccessfulTurns).toBe(2);
   });
-  it("양쪽 합계 6회 연속 패스로만 라운드를 종료하고 복기 정보를 저장한다", () => {
+  it("합이 남아 있으면 양쪽 합계 4회 실패 턴에 라운드를 종료하고 복기한다", () => {
     let state = initial();
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 4; i++) {
       state = advance(state);
-      expect(state.consecutivePasses).toBe(i);
-      expect(state.phase).toBe(i === 6 ? "ROUND_END" : "RESULT");
-      if (i < 6) state = advance(state);
+      expect(state.unsuccessfulTurns).toBe(i);
+      expect(state.phase).toBe(i === 4 ? "ROUND_END" : "RESULT");
+      if (i < 4) state = advance(state);
     }
     expect(state.history[0].missedHaps.length).toBe(state.allHaps.length);
     expect(state.history[0].missedHaps[0].checks).toBeDefined();
+    expect(state.history[0].endReason).toBe("STALLED");
   });
   it("잘못된 번호, 반복 번호, 차례 밖, 만료 및 오래된 요청을 차단한다", () => {
     const state = initial(), selected = act(state, { type: "HAP" });
@@ -174,11 +226,11 @@ describe("시간과 입력 검증", () => {
 });
 
 describe("라운드와 공개 정보", () => {
-  it("라운드마다 선공 교대 및 기록 초기화, 10라운드 종료 시 승리 판정", () => {
+  it("라운드마다 선공 교대 및 기록 초기화, 3라운드 종료 시 승리 판정", () => {
     let state = initial();
-    state.round = 9;
+    state.round = 2;
     const next = advance(finishRound(state));
-    expect(next.round).toBe(10);
+    expect(next.round).toBe(3);
     expect(next.currentPlayerId).toBe("b");
     expect(next.foundHaps).toEqual([]);
     expect(next.attempts).toEqual([]);
@@ -188,15 +240,14 @@ describe("라운드와 공개 정보", () => {
     expect(state.winnerId).toBe("a");
     expect(state.deadline).toBeNull();
   });
-  it("10라운드 동점은 연장, 연장 중이 아닌 종료 시 점수를 비교한다", () => {
-    const state = initial(); state.round = 10; state.scores.b = 3;
-    let next = advance(finishRound(state));
-    expect(next.round).toBe(11);
-    expect(next.currentPlayerId).toBe("b");
-    expect(next.winnerId).toBeNull();
-    next = finishRound(next);
-    expect(next.winnerId).toBeNull();
-    expect(advance(next).winnerId).toBe("b");
+  it("3라운드 동점이면 연장 없이 무승부로 끝나고 복기를 공개한다", () => {
+    const state = initial(); state.round = 3; state.scores.b = 3;
+    const next = advance(finishRound(state));
+    expect(next.round).toBe(3);
+    expect(engine.getResult(next)).toEqual({ winnerId: null, isDraw: true });
+    expect(next.deadline).toBeNull();
+    expect(engine.getPlayerView(next, "a").history).toHaveLength(1);
+    expect(engine.validateAction(next, "a", { type: "GYEOL", round: 3, turnId: next.turnId })).toBe(false);
   });
   it("진행 중 정답·복기 목록 비공개, 종료 후 실패 속성과 놓친 합 공개", () => {
     let state = act(act(initial(), { type: "HAP" }), { type: "SUBMIT_HAP", numbers: [1, 2, 4] });

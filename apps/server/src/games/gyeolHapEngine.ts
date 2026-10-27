@@ -1,6 +1,6 @@
 import {
-  HAP_BACKGROUNDS, HAP_COLORS, HAP_SHAPES, checkHap, findAllHaps, hapKey,
-  type FoundHap, type GyeolHapView, type HapAttempt, type HapRoundReview, type HapTile,
+  HAP_MODES, HAP_ROUNDS, HAP_STALL_TURNS, checkHap, findAllHaps, hapKey,
+  type FoundHap, type GyeolHapView, type HapAttempt, type HapGameType, type HapRoundReview, type HapTile,
 } from "@brain-arena/shared";
 import type { GameEngine } from "./gameEngine.js";
 
@@ -8,6 +8,8 @@ export type GyeolHapAction = { turnId: number; round: number } & (
   { type: "HAP" } | { type: "GYEOL" } | { type: "SUBMIT_HAP"; numbers: number[] }
 );
 export interface GyeolHapState {
+  kind: HapGameType;
+  usedBoardKeys: string[];
   playerIds: string[];
   firstPlayerId: string;
   currentPlayerId: string;
@@ -18,7 +20,7 @@ export interface GyeolHapState {
   allHaps: number[][];
   foundHaps: FoundHap[];
   scores: Record<string, number>;
-  consecutivePasses: number;
+  unsuccessfulTurns: number;
   lastResult: HapAttempt | null;
   attempts: HapAttempt[];
   history: HapRoundReview[];
@@ -27,13 +29,21 @@ export interface GyeolHapState {
   deadline: number | null;
 }
 
-export function createHapBoard(): HapTile[] {
-  const deck = HAP_SHAPES.flatMap(shape => HAP_COLORS.flatMap(shapeColor => HAP_BACKGROUNDS.map(backgroundColor => ({ shape, shapeColor, backgroundColor }))));
+const boardKey = (board: HapTile[]) => board.map(tile => `${tile.shape}/${tile.shapeColor}/${tile.backgroundColor}`).sort().join(";");
+
+export function createHapBoard(kind: HapGameType = "GYEOL_HAP", excluded: string[] = []): HapTile[] {
+  const mode = HAP_MODES[kind];
+  const deck = mode.shapes.flatMap(shape => mode.colors.flatMap(shapeColor => mode.backgrounds.map(backgroundColor => ({ shape, shapeColor, backgroundColor }))));
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
-  return deck.slice(0, 9);
+  // Rotating also guarantees a different tile set if the shuffle repeats.
+  for (let offset = 0; offset < deck.length; offset++) {
+    const board = Array.from({ length: 9 }, (_, index) => deck[(offset + index) % deck.length]);
+    if (!excluded.includes(boardKey(board))) return board;
+  }
+  throw new Error("새로운 게임판을 만들 수 없습니다.");
 }
 
 const other = (state: GyeolHapState, id: string) => state.playerIds.find(playerId => playerId !== id)!;
@@ -49,7 +59,7 @@ function roundReview(state: GyeolHapState, endReason: HapRoundReview["endReason"
   });
 }
 
-function endRound(state: GyeolHapState, reason: "GYEOL" | "PASSES", now: number) {
+function endRound(state: GyeolHapState, reason: "GYEOL" | "STALLED", now: number) {
   state.history.push(roundReview(state, reason));
   state.phase = "ROUND_END";
   state.deadline = now + 3_000;
@@ -59,14 +69,14 @@ function record(state: GyeolHapState, result: HapAttempt, now: number) {
   state.scores[result.playerId] += result.delta;
   state.lastResult = result;
   state.attempts.push(result);
-  state.consecutivePasses = result.reason === "PASS" ? state.consecutivePasses + 1 : 0;
+  state.unsuccessfulTurns = result.reason === "NEW_HAP" ? 0 : state.unsuccessfulTurns + 1;
   if (result.reason === "GYEOL") endRound(state, "GYEOL", now);
-  else if (state.consecutivePasses === 6) endRound(state, "PASSES", now);
+  else if (state.unsuccessfulTurns >= HAP_STALL_TURNS && remainingHaps(state).length > 0) endRound(state, "STALLED", now);
   else { state.phase = "RESULT"; state.deadline = now + 1_500; }
 }
 
 export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): GyeolHapState {
-  if (state.winnerId || state.deadline === null || now < state.deadline) return state;
+  if (state.winnerId || state.isDraw || state.deadline === null || now < state.deadline) return state;
   const next = structuredClone(state);
   if (next.phase === "TURN" || next.phase === "SELECT") {
     record(next, { playerId: next.currentPlayerId, reason: next.phase === "TURN" ? "PASS" : "TIMEOUT", numbers: [], delta: next.phase === "TURN" ? 0 : -1, checks: null }, now);
@@ -78,8 +88,9 @@ export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): Gy
     next.lastResult = null;
   } else {
     const [a, b] = next.playerIds;
-    if (next.round >= 10 && next.scores[a] !== next.scores[b]) {
-      next.winnerId = next.scores[a] > next.scores[b] ? a : b;
+    if (next.round >= HAP_ROUNDS) {
+      next.isDraw = next.scores[a] === next.scores[b];
+      next.winnerId = next.isDraw ? null : next.scores[a] > next.scores[b] ? a : b;
       next.deadline = null;
       return next;
     }
@@ -87,10 +98,11 @@ export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): Gy
     next.turnId++;
     next.firstPlayerId = other(next, next.firstPlayerId);
     next.currentPlayerId = next.firstPlayerId;
-    next.board = createHapBoard();
+    next.board = createHapBoard(next.kind, next.usedBoardKeys);
+    next.usedBoardKeys.push(boardKey(next.board));
     next.allHaps = findAllHaps(next.board);
     next.foundHaps = [];
-    next.consecutivePasses = 0;
+    next.unsuccessfulTurns = 0;
     next.attempts = [];
     next.lastResult = null;
     next.phase = "TURN";
@@ -99,14 +111,16 @@ export function advanceGyeolHapPhase(state: GyeolHapState, now = Date.now()): Gy
   return next;
 }
 
-export const gyeolHapEngine: GameEngine<GyeolHapState, GyeolHapAction, GyeolHapView> = {
-  createInitialState(playerIds) {
+export function createGyeolHapState(playerIds: string[], kind: HapGameType = "GYEOL_HAP"): GyeolHapState {
     if (playerIds.length !== 2 || new Set(playerIds).size !== 2) throw new Error("서로 다른 두 명의 플레이어가 필요합니다.");
-    const board = createHapBoard(), firstPlayerId = playerIds[Math.floor(Math.random() * 2)];
-    return { playerIds: [...playerIds], firstPlayerId, currentPlayerId: firstPlayerId, round: 1, turnId: 1, phase: "TURN", board, allHaps: findAllHaps(board), foundHaps: [], scores: Object.fromEntries(playerIds.map(id => [id, 0])), consecutivePasses: 0, lastResult: null, attempts: [], history: [], winnerId: null, isDraw: false, deadline: Date.now() + 10_000 };
-  },
+    const board = createHapBoard(kind), firstPlayerId = playerIds[Math.floor(Math.random() * 2)];
+    return { kind, usedBoardKeys: [boardKey(board)], playerIds: [...playerIds], firstPlayerId, currentPlayerId: firstPlayerId, round: 1, turnId: 1, phase: "TURN", board, allHaps: findAllHaps(board), foundHaps: [], scores: Object.fromEntries(playerIds.map(id => [id, 0])), unsuccessfulTurns: 0, lastResult: null, attempts: [], history: [], winnerId: null, isDraw: false, deadline: Date.now() + 10_000 };
+}
+
+export const gyeolHapEngine: GameEngine<GyeolHapState, GyeolHapAction, GyeolHapView> = {
+  createInitialState: createGyeolHapState,
   validateAction(state, playerId, action) {
-    if (state.winnerId || state.currentPlayerId !== playerId || !state.playerIds.includes(playerId)
+    if (state.winnerId || state.isDraw || state.currentPlayerId !== playerId || !state.playerIds.includes(playerId)
       || state.deadline === null || Date.now() >= state.deadline || action.turnId !== state.turnId || action.round !== state.round) return false;
     if (action.type === "HAP" || action.type === "GYEOL") return state.phase === "TURN";
     return action.type === "SUBMIT_HAP" && state.phase === "SELECT" && Array.isArray(action.numbers)
@@ -136,10 +150,11 @@ export const gyeolHapEngine: GameEngine<GyeolHapState, GyeolHapAction, GyeolHapV
     return next;
   },
   getPlayerView(state) {
-    const history = state.winnerId ? [...state.history] : [];
+    const finished = state.winnerId !== null || state.isDraw;
+    const history = finished ? [...state.history] : [];
     // Include the interrupted round when the shared room system awards a forfeit.
-    if (state.winnerId && !history.some(review => review.round === state.round)) history.push(roundReview(state, "FORFEIT"));
-    return structuredClone({ kind: "GYEOL_HAP", phase: state.phase, round: state.round, turnId: state.turnId, currentPlayerId: state.currentPlayerId, board: state.board, scores: state.scores, foundHaps: state.foundHaps, consecutivePasses: state.consecutivePasses, lastResult: state.lastResult, history, winnerId: state.winnerId, isDraw: false, deadline: state.deadline });
+    if (finished && !history.some(review => review.round === state.round)) history.push(roundReview(state, "FORFEIT"));
+    return structuredClone({ kind: state.kind, phase: state.phase, round: state.round, turnId: state.turnId, currentPlayerId: state.currentPlayerId, board: state.board, scores: state.scores, foundHaps: state.foundHaps, unsuccessfulTurns: state.unsuccessfulTurns, lastResult: state.lastResult, history, winnerId: state.winnerId, isDraw: state.isDraw, deadline: state.deadline });
   },
-  getResult(state) { return state.winnerId ? { winnerId: state.winnerId, isDraw: false } : null; },
+  getResult(state) { return state.winnerId || state.isDraw ? { winnerId: state.winnerId, isDraw: state.isDraw } : null; },
 };

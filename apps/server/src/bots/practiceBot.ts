@@ -212,6 +212,7 @@ export function decidePracticeBot(view: GameView, botId: string): BotDecision | 
     case "SECRET_DICE": return decideSecretDice(view, botId);
     case "INDIAN_POKER": return decidePoker(view, botId);
     case "FIND_THE_NUMBER": return null;
+    case "GYEOL_HAP_1":
     case "GYEOL_HAP": {
       if (view.currentPlayerId !== botId || (view.phase !== "TURN" && view.phase !== "SELECT")) return null;
       // Think only from the same public board and found-answer history as a human.

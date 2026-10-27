@@ -16,6 +16,31 @@ function match() {
 }
 
 describe("결! 합! 방 통합", () => {
+  it.each(["GYEOL_HAP_1", "GYEOL_HAP"] as const)("%s의 대전·연습·재시작에 같은 모드를 적용한다", kind => {
+    const manager = new RoomManager();
+    const { room, player } = manager.createPractice("연습생", kind, "socket-a");
+    expect(manager.view(room, player.id).gameState?.kind).toBe(kind);
+    manager.forfeit(room.code, player.id, "socket-a");
+    manager.restart(room.code, player.id, "socket-a");
+    expect(manager.view(room, player.id).gameState?.kind).toBe(kind);
+    const { room: duel, player: a } = manager.create("플레이어A", kind, "socket-c");
+    const { player: b } = manager.join(duel.code, "플레이어B", "socket-d");
+    manager.ready(duel.code, a.id, "socket-c"); manager.ready(duel.code, b.id, "socket-d");
+    expect(manager.view(duel, a.id).gameState?.kind).toBe(kind);
+  });
+  it("3라운드 동점도 방 종료로 반영한다", () => {
+    const { manager, room } = match();
+    const state = room.gameState as GyeolHapState;
+    state.round = 3;
+    const player = room.players.find(p => p.id === state.currentPlayerId)!;
+    const opponent = room.players.find(p => p.id !== player.id)!;
+    state.scores[opponent.id] = 3;
+    state.foundHaps = state.allHaps.map(numbers => ({ numbers, playerId: player.id }));
+    manager.action(room.code, player.id, player.socketId, "GYEOL", { round: 3, turnId: state.turnId });
+    vi.setSystemTime(room.gameState!.deadline!); manager.processDeadlines();
+    expect(room.status).toBe("FINISHED");
+    expect(manager.view(room, player.id).gameState?.isDraw).toBe(true);
+  });
   it("준비 후 시작, 인증된 합 입력, 양쪽 공용 기록과 서버 시간 처리를 연결한다", () => {
     const { manager, room } = match();
     expect(room.status).toBe("PLAYING");
@@ -53,10 +78,10 @@ describe("결! 합! 방 통합", () => {
     expect((room.gameState as GyeolHapState).scores[player.id]).toBe(-1);
   });
 
-  it("10라운드 승패를 방 종료로 반영하고 재대결할 수 있다", () => {
+  it("3라운드 승패를 방 종료로 반영하고 재대결할 수 있다", () => {
     const { manager, room, a } = match();
     const state = room.gameState as GyeolHapState;
-    state.round = 10; state.scores[state.currentPlayerId] = 10;
+    state.round = 3; state.scores[state.currentPlayerId] = 10;
     state.foundHaps = state.allHaps.map(numbers => ({ numbers, playerId: a.id }));
     const player = room.players.find(p => p.id === state.currentPlayerId)!;
     manager.action(room.code, player.id, player.socketId, "GYEOL", { round: state.round, turnId: state.turnId });
