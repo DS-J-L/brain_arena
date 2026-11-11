@@ -154,3 +154,35 @@ nav{position:sticky;top:0;z-index:15;max-width:none;padding:0 max(30px,calc((100
 
 @media(max-width:800px){nav{padding:0 18px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Memory Hold'em */
+.symbol-7{color:var(--lime)}
+.holdem-game{max-width:650px;margin:0 auto}
+.holdem-coin{margin:28px auto;padding:28px 20px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md)}
+.holdem-coin strong{display:block;margin:10px 0;font-size:20px}
+.holdem-roles{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:340px;margin:20px auto 0}
+.holdem-roles button{min-height:56px;font-size:18px;font-weight:800}
+.holdem-community{display:grid;justify-items:center;gap:8px;margin:20px 0}
+.holdem-community small{font-size:11px;letter-spacing:1.2px;color:#8f88a0}
+.holdem-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.holdem-card{min-width:48px;padding:10px 6px;text-align:center;font:20px "DM Mono";color:#17121e;background:linear-gradient(145deg,#f6f2fb,#ded7e8);border:2px solid #655775;border-radius:6px}
+.holdem-card.red-suit,.memory-card.red-suit .memory-card-front{color:#c22b4c}
+.holdem-card.hidden{color:#776e85;background:repeating-linear-gradient(135deg,#211a32 0 10px,#261e3a 10px 20px);border-color:#453858}
+.holdem-card.picked{border-color:var(--lime);box-shadow:0 0 0 2px #c8ff4340}
+.memory-card .memory-card-badge{width:auto;height:21px;padding:0 8px;border-radius:11px;font:700 11px "Noto Sans KR";z-index:1}
+.memory-card.owned-mine .memory-card-face{border-color:var(--lime);box-shadow:0 0 0 2px #c8ff4340}
+.memory-card.owned-opponent .memory-card-face{border-color:var(--danger)}
+.memory-card.owned-opponent .memory-card-badge{background:var(--danger)}
+.memory-card.owned-mine .memory-card-back,.memory-card.owned-opponent .memory-card-back{opacity:.65}
+.holdem-progress{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;margin:16px 0;font-size:12px;color:var(--text-2)}
+.holdem-past{justify-content:center}
+.holdem-showdown{margin:20px 0;padding:18px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md)}
+.holdem-showdown.win{border-color:var(--lime)}.holdem-showdown.lose{border-color:var(--danger)}
+.holdem-showdown>strong{display:block;margin:6px 0 14px;font-size:16px}
+.holdem-hands{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.holdem-hands article{display:grid;gap:8px;justify-items:center;padding:12px 8px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm)}
+.holdem-hands article.won{border-color:var(--lime)}
+.holdem-hands small{font-size:11px;color:var(--text-2)}
+.holdem-hands b{font-size:14px;color:var(--lime)}
+.holdem-hands .holdem-card{min-width:38px;padding:6px 3px;font-size:15px}
+@media(max-width:600px){.holdem-hands{grid-template-columns:1fr}.holdem-card{min-width:42px;font-size:18px}.holdem-game .memory-card strong{font-size:20px}}

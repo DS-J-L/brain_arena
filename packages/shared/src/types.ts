@@ -1,4 +1,4 @@
-export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP"] as const;
+export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP", "MEMORY_HOLDEM"] as const;
 export type GameType = (typeof GAME_TYPES)[number];
 export type RoomStatus = "WAITING" | "PLAYING" | "FINISHED";
 
@@ -165,7 +165,42 @@ export interface GyeolHapView extends GameViewBase {
   history: HapRoundReview[];
 }
 
-export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView | GyeolHapView;
+export type CardSuit = "S" | "H" | "D" | "C";
+/** rank: 2~14 (J=11, Q=12, K=13, A=14) */
+export interface PlayingCard { rank: number; suit: CardSuit }
+export type HoldemRole = "FIRST" | "SECOND";
+export const HOLDEM_TARGET_WINS = 3;
+export const cardRankName = (rank: number) => rank === 14 ? "A" : rank === 13 ? "K" : rank === 12 ? "Q" : rank === 11 ? "J" : String(rank);
+export const cardText = (card: PlayingCard) => `${cardRankName(card.rank)}${{ S: "♠", H: "♥", D: "♦", C: "♣" }[card.suit]}`;
+export interface HoldemSeatReview { indices: number[]; cards: PlayingCard[]; label: string }
+export interface HoldemHandReview {
+  hand: number;
+  board: PlayingCard[];
+  community: PlayingCard[];
+  firstPlayerId: string;
+  seats: Record<string, HoldemSeatReview>;
+  winnerId: string | null;
+  reason: string;
+}
+export interface MemoryHoldemView extends GameViewBase {
+  kind: "MEMORY_HOLDEM";
+  phase: "COIN" | "MEMORIZE" | "PICK" | "SHOWDOWN";
+  hand: number;
+  wins: Record<string, number>;
+  targetWins: number;
+  chooserId: string;
+  firstPlayerId: string | null;
+  currentPlayerId: string | null;
+  /** 1~4: 이번 판에서 지금 확정할 선택 순번 */
+  pickNumber: number;
+  board: Array<PlayingCard | null>;
+  owners: Array<string | null>;
+  community: PlayingCard[];
+  showdown: HoldemHandReview | null;
+  history: HoldemHandReview[];
+}
+
+export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView | GyeolHapView | MemoryHoldemView;
 export interface RoomView {
   code: string;
   hostId: string;
@@ -190,5 +225,6 @@ export const GAME_INFO: Record<GameType, { name: string; description: string; du
   INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true },
   FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true },
   GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true },
-  GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true }
+  GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true },
+  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 16장의 위치를 기억하고, 두 장을 골라 더 높은 족보를 만드는 5판 3선승", duration: "5~10분", difficulty: "보통", available: true }
 };
