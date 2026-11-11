@@ -29,10 +29,14 @@ describe("memoryHoldem 족보", () => {
     expect(hand("A♠ 2♥ 3♦ 4♣ 5♠").label).toBe("5 하이 스트레이트");
     expect(compareScores(hand("2♠ 3♥ 4♦ 5♣ 6♠").score, hand("A♠ 2♥ 3♦ 4♣ 5♠").score)).toBeGreaterThan(0);
   });
-  it("같은 족보는 족보 숫자, 키커 순으로 비교하고 무늬는 보지 않는다", () => {
+  it("같은 족보는 족보 숫자, 키커, 무늬(♠ > ♦ > ♥ > ♣) 순으로 비교한다", () => {
     expect(compareScores(hand("K♠ K♥ 4♦ 4♣ 9♠").score, hand("Q♠ Q♥ J♦ J♣ A♠").score)).toBeGreaterThan(0);
     expect(compareScores(hand("K♠ K♥ Q♦ 4♣ 2♠").score, hand("K♦ K♣ J♦ 4♥ 2♥").score)).toBeGreaterThan(0);
-    expect(compareScores(hand("K♠ K♥ Q♦ 4♣ 2♠").score, hand("K♦ K♣ Q♥ 4♥ 2♥").score)).toBe(0);
+    // 숫자가 모두 같으면 족보를 이루는 카드부터 무늬를 본다: K♠ K♦ 대 K♠ K♥
+    expect(compareScores(hand("K♠ K♦ Q♣ 4♣ 2♣").score, hand("K♠ K♥ Q♠ 4♣ 2♣").score)).toBeGreaterThan(0);
+    expect(compareScores(hand("A♦ 9♣ 7♣ 4♣ 2♥").score, hand("A♥ 9♠ 7♣ 4♣ 2♥").score)).toBeGreaterThan(0);
+    // A-2-3-4-5에서는 5의 무늬를 먼저 본다
+    expect(compareScores(hand("A♣ 2♥ 3♦ 4♣ 5♠").score, hand("A♠ 2♥ 3♦ 4♣ 5♦").score)).toBeGreaterThan(0);
   });
 });
 
@@ -105,12 +109,10 @@ describe("memoryHoldemEngine", () => {
     expect(state.history).toHaveLength(3);
   });
 
-  it("무승부인 판은 승수에 넣지 않고 다음 판으로 넘어간다", () => {
-    let state = playHand(memoryHoldemEngine.createInitialState(["a", "b"]), "K♠ 9♦ 4♣", "A♥ Q♦", "A♠ Q♣");
-    expect(state.showdown?.winnerId).toBeNull();
-    expect(state.wins).toEqual({ a: 0, b: 0 });
-    state = advanceMemoryHoldemPhase(state);
-    expect(state.hand).toBe(2);
-    expect(state.winnerId).toBeNull();
+  it("숫자가 모두 같으면 무늬로 승패를 정해 무승부가 없다", () => {
+    const state = playHand(memoryHoldemEngine.createInitialState(["a", "b"]), "K♠ 9♦ 4♣", "A♥ Q♦", "A♠ Q♣");
+    expect(state.showdown?.winnerId).toBe("b");
+    expect(state.showdown?.reason).toBe("숫자가 모두 같은 A 하이카드 · 무늬 A♠ > A♥");
+    expect(state.wins).toEqual({ a: 0, b: 1 });
   });
 });

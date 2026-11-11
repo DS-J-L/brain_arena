@@ -1,4 +1,4 @@
-import { HOLDEM_TARGET_WINS, cardRankName, type CardSuit, type HoldemHandReview, type HoldemRole, type MemoryHoldemView, type PlayingCard } from "@brain-arena/shared";
+import { HOLDEM_TARGET_WINS, cardRankName, cardText, type CardSuit, type HoldemHandReview, type HoldemRole, type MemoryHoldemView, type PlayingCard } from "@brain-arena/shared";
 import type { GameEngine, GameResult } from "./gameEngine.js";
 
 // hand/pick는 화면이 보고 있던 순번이다. 시간 초과 자동 선택과 클릭이 겹쳐도 한 순번에 한 장만 확정한다.
@@ -29,8 +29,14 @@ const other = (state: MemoryHoldemState, playerId: string) => state.playerIds.fi
 const shuffle = <T>(values: T[]) => { const result = [...values]; for (let index = result.length - 1; index > 0; index--) { const target = Math.floor(Math.random() * (index + 1)); [result[index], result[target]] = [result[target], result[index]]; } return result; };
 const hasBatchim = (text: string) => { const code = text.charCodeAt(text.length - 1) - 0xac00; return code >= 0 && code <= 11171 && code % 28 !== 0; };
 
-/** 5장의 족보. score는 앞에서부터 큰 쪽이 이기는 비교 값이다. */
-export function evaluateHand(cards: PlayingCard[]): { score: number[]; label: string } {
+const SUIT_ORDER: Record<CardSuit, number> = { S: 4, D: 3, H: 2, C: 1 };
+
+/**
+ * 5장의 족보. score는 앞에서부터 큰 쪽이 이기는 비교 값이다.
+ * 앞쪽 rankLength개는 족보와 숫자, 그 뒤 5개는 ordered(족보 숫자 → 키커 순) 카드의 무늬 값이다.
+ * 서로 다른 카드를 든 두 패는 숫자가 모두 같아도 무늬(♠ > ♦ > ♥ > ♣)에서 반드시 갈린다.
+ */
+export function evaluateHand(cards: PlayingCard[]): { score: number[]; label: string; rankLength: number; ordered: PlayingCard[] } {
   const ranks = cards.map(card => card.rank).sort((a, b) => b - a);
   const counts = new Map<number, number>();
   for (const rank of ranks) counts.set(rank, (counts.get(rank) ?? 0) + 1);
@@ -41,15 +47,19 @@ export function evaluateHand(cards: PlayingCard[]): { score: number[]; label: st
   const wheel = ranks.join() === "14,5,4,3,2";
   const straight = groups.length === 5 && (ranks[0] - ranks[4] === 4 || wheel);
   const top = wheel ? 5 : ranks[0];
-  if (straight && flush) return { score: [8, top], label: top === 14 ? "로열 플러시" : `${name(top)} 하이 스트레이트 플러시` };
-  if (shape === "41") return { score: [7, ...order], label: `${name(order[0])} 포카드` };
-  if (shape === "32") return { score: [6, ...order], label: `${name(order[0])}·${name(order[1])} 풀하우스` };
-  if (flush) return { score: [5, ...ranks], label: `${name(ranks[0])} 하이 플러시` };
-  if (straight) return { score: [4, top], label: `${name(top)} 하이 스트레이트` };
-  if (shape === "311") return { score: [3, ...order], label: `${name(order[0])} 트리플` };
-  if (shape === "221") return { score: [2, ...order], label: `${name(order[0])}·${name(order[1])} 투페어` };
-  if (shape === "2111") return { score: [1, ...order], label: `${name(order[0])} 원페어` };
-  return { score: [0, ...ranks], label: `${name(ranks[0])} 하이카드` };
+  // A-2-3-4-5에서는 A가 가장 낮은 카드다.
+  const weight = (card: PlayingCard) => counts.get(card.rank)! * 100 + (wheel && card.rank === 14 ? 1 : card.rank);
+  const ordered = [...cards].sort((a, b) => weight(b) - weight(a) || SUIT_ORDER[b.suit] - SUIT_ORDER[a.suit]);
+  const result = (rankScore: number[], label: string) => ({ score: [...rankScore, ...ordered.map(card => SUIT_ORDER[card.suit])], label, rankLength: rankScore.length, ordered });
+  if (straight && flush) return result([8, top], top === 14 ? "로열 플러시" : `${name(top)} 하이 스트레이트 플러시`);
+  if (shape === "41") return result([7, ...order], `${name(order[0])} 포카드`);
+  if (shape === "32") return result([6, ...order], `${name(order[0])}·${name(order[1])} 풀하우스`);
+  if (flush) return result([5, ...ranks], `${name(ranks[0])} 하이 플러시`);
+  if (straight) return result([4, top], `${name(top)} 하이 스트레이트`);
+  if (shape === "311") return result([3, ...order], `${name(order[0])} 트리플`);
+  if (shape === "221") return result([2, ...order], `${name(order[0])}·${name(order[1])} 투페어`);
+  if (shape === "2111") return result([1, ...order], `${name(order[0])} 원페어`);
+  return result([0, ...ranks], `${name(ranks[0])} 하이카드`);
 }
 
 export function compareScores(a: number[], b: number[]) {
@@ -84,22 +94,20 @@ function resolve(state: MemoryHoldemState) {
     const cards = indices.map(index => state.board[index]);
     return { id, indices, cards, ...evaluateHand([...state.community, ...cards]) };
   });
-  const [a, b] = evaluated, diff = compareScores(a.score, b.score);
-  const winner = diff > 0 ? a : diff < 0 ? b : null, loser = winner === a ? b : a;
-  let reason = "두 패가 같아 무승부예요. 이 판은 승수에 넣지 않아요.";
-  if (winner && winner.label !== loser.label) reason = `${winner.label}${hasBatchim(winner.label) ? "이" : "가"} ${loser.label}${hasBatchim(loser.label) ? "을" : "를"} 이겼어요`;
-  else if (winner) {
-    const at = winner.score.findIndex((value, index) => value !== loser.score[index]);
-    reason = `같은 ${winner.label} · 키커 ${cardRankName(winner.score[at])} > ${cardRankName(loser.score[at])}`;
-  }
+  // 두 사람의 카드가 다르므로 무늬 비교까지 가면 승자가 반드시 정해진다.
+  const [a, b] = evaluated, winner = compareScores(a.score, b.score) > 0 ? a : b, loser = winner === a ? b : a;
+  const at = winner.score.findIndex((value, index) => value !== loser.score[index]), suitAt = at - winner.rankLength;
+  const reason = winner.label !== loser.label ? `${winner.label}${hasBatchim(winner.label) ? "이" : "가"} ${loser.label}${hasBatchim(loser.label) ? "을" : "를"} 이겼어요`
+    : suitAt < 0 ? `같은 ${winner.label} · 키커 ${cardRankName(winner.score[at])} > ${cardRankName(loser.score[at])}`
+    : `숫자가 모두 같은 ${winner.label} · 무늬 ${cardText(winner.ordered[suitAt])} > ${cardText(loser.ordered[suitAt])}`;
   const review: HoldemHandReview = {
     hand: state.hand, board: state.board, community: state.community, firstPlayerId: state.firstPlayerId!,
     seats: Object.fromEntries(evaluated.map(seat => [seat.id, { indices: seat.indices, cards: seat.cards, label: seat.label }])),
-    winnerId: winner?.id ?? null, reason,
+    winnerId: winner.id, reason,
   };
   state.showdown = review;
   state.history.push(review);
-  if (winner && ++state.wins[winner.id] >= HOLDEM_TARGET_WINS) state.pendingWinnerId = winner.id;
+  if (++state.wins[winner.id] >= HOLDEM_TARGET_WINS) state.pendingWinnerId = winner.id;
   state.phase = "SHOWDOWN";
   state.deadline = Date.now() + TIMES.SHOWDOWN;
 }
