@@ -3,6 +3,7 @@ import type { Ack, GameType, RoomView } from "@brain-arena/shared";
 import { HomePage } from "./pages/HomePage";
 import { RoomPage } from "./pages/RoomPage";
 import { ConnectionBadge } from "./components/ConnectionBadge";
+import { SoundToggle } from "./components/SoundToggle";
 import { SERVER_CONFIGURED, SERVER_URL, socket } from "./socket/socket";
 
 interface Session { playerId: string; roomCode: string }
@@ -41,5 +42,5 @@ export default function App() {
   function join(roomCode: string) { setError(""); setBusy(true); localStorage.setItem("brain-arena-nickname", nickname); socket.emit("room:join", { nickname, roomCode }, (ack: Ack<{room: RoomView; playerId: string}>) => { setBusy(false); if (ack.ok && ack.data) save(ack.data.playerId, ack.data.room); else setError(ack.error ?? "방에 참가하지 못했습니다."); }); }
   function exitLocal() { setRoom(null); setPlayerId(""); setError(""); localStorage.removeItem("brain-arena-session"); }
   function leave() { if (room) socket.emit("room:leave", { roomCode: room.code, playerId }); exitLocal(); }
-  return <><ConnectionBadge connected={connected}/>{room ? <RoomPage room={room} playerId={playerId} onLeave={leave} onExitLocal={exitLocal} setError={setError}/> : <HomePage nickname={nickname} setNickname={setNickname} onCreate={create} onPractice={practice} onJoin={join} busy={busy} error={error}/>} {error && room && <button className="toast" onClick={() => setError("")}>{error} <b>×</b></button>}</>;
+  return <><ConnectionBadge connected={connected}/><SoundToggle/>{room ? <RoomPage room={room} playerId={playerId} onLeave={leave} onExitLocal={exitLocal} setError={setError}/> : <HomePage nickname={nickname} setNickname={setNickname} onCreate={create} onPractice={practice} onJoin={join} busy={busy} error={error}/>} {error && room && <button className="toast" onClick={() => setError("")}>{error} <b>×</b></button>}</>;
 }

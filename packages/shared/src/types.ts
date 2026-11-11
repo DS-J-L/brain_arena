@@ -226,5 +226,5 @@ export const GAME_INFO: Record<GameType, { name: string; description: string; du
   FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true },
   GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true },
   GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true },
-  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 16장의 위치를 기억하고, 두 장을 골라 더 높은 족보를 만드는 5판 3선승", duration: "5~10분", difficulty: "보통", available: true }
+  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 위치를 기억해 두 장으로 족보를 겨루는 5판 3선승 대결", duration: "5~10분", difficulty: "보통", available: true }
 };

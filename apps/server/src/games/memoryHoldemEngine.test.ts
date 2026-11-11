@@ -91,7 +91,7 @@ describe("memoryHoldemEngine", () => {
   it("공용 카드 3장과 고른 2장으로 승패와 이유를 정한다", () => {
     const state = playHand(memoryHoldemEngine.createInitialState(["a", "b"]), "K♠ 9♦ 4♣", "K♥ 9♣", "9♠ 9♥");
     expect(state.showdown?.winnerId).toBe("b");
-    expect(state.showdown?.reason).toBe("9 트리플이 K·9 투페어를 이겼어요");
+    expect(state.showdown?.reason).toBe("9 트리플이 K·9 투페어를 이겼습니다");
     expect(state.wins).toEqual({ a: 0, b: 1 });
   });
 
