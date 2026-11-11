@@ -101,9 +101,9 @@ describe("memoryHoldemEngine", () => {
       state = playHand(state, "K♠ 9♦ 4♣", "K♥ K♦", "2♠ 3♥");
       expect(state.wins.a).toBe(won);
       expect(state.winnerId).toBeNull();
-      const chooser = state.chooserId;
       state = advanceMemoryHoldemPhase(state);
-      if (won < 3) { expect(state.phase).toBe("COIN"); expect(state.hand).toBe(won + 1); expect(state.chooserId).not.toBe(chooser); }
+      // 직전 판에서 진 b가 다음 판의 순서를 고른다.
+      if (won < 3) { expect(state.phase).toBe("COIN"); expect(state.hand).toBe(won + 1); expect(state.chooserId).toBe("b"); }
     }
     expect(memoryHoldemEngine.getResult(state)).toEqual({ winnerId: "a", isDraw: false });
     expect(state.history).toHaveLength(3);

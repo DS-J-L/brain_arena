@@ -3,8 +3,31 @@ import { MemoryCard } from "./MemoryCard";
 
 interface Props { game: MemoryHoldemView; playerId: string; opponentName: string; emit: (event: string, payload?: object) => void }
 
-const isRed = (card: PlayingCard) => card.suit === "H" || card.suit === "D";
-const Card = ({ card, mine }: { card: PlayingCard; mine?: boolean }) => <span className={`holdem-card${isRed(card) ? " red-suit" : ""}${mine ? " picked" : ""}`}>{cardText(card)}</span>;
+// 숫자 카드의 무늬 배치: [가로 %, 세로 %]. 아래쪽 절반은 실제 카드처럼 뒤집어 그린다.
+const L = 38, C = 50, R = 62;
+const SIX: Array<[number, number]> = [[L, 20], [R, 20], [L, 50], [R, 50], [L, 80], [R, 80]];
+const EIGHT: Array<[number, number]> = [[L, 20], [R, 20], [L, 40], [R, 40], [L, 60], [R, 60], [L, 80], [R, 80]];
+const PIPS: Record<string, Array<[number, number]>> = {
+  "2": [[C, 22], [C, 78]], "3": [[C, 20], [C, 50], [C, 80]], "4": [[L, 22], [R, 22], [L, 78], [R, 78]], "5": [[L, 22], [R, 22], [C, 50], [L, 78], [R, 78]],
+  "6": SIX, "7": [...SIX, [C, 35]], "8": [...SIX, [C, 35], [C, 65]], "9": [...EIGHT, [C, 50]], "10": [...EIGHT, [C, 30], [C, 70]],
+};
+
+/** "K♠" 같은 글자를 실제 카드 모양으로 그린다. mini는 작은 칸용으로 숫자와 무늬만 보여준다. */
+function PlayingCardFace({ text, position, mini }: { text: string; position?: string; mini?: boolean }) {
+  const rank = text.slice(0, -1), suit = text.slice(-1), tone = suit === "♥" || suit === "♦" ? " red" : "";
+  if (mini) return <span className={`pcard mini${tone}`}><b>{rank}</b><i>{suit}</i></span>;
+  const corner = <><b>{rank}</b><i>{suit}</i></>;
+  return <span className={`pcard${tone}`}>
+    <span className="pcard-corner">{corner}</span>
+    {PIPS[rank]
+      ? PIPS[rank].map(([x, y], index) => <i key={index} className={`pcard-pip${y > 50 ? " flip" : ""}`} style={{ left: `${x}%`, top: `${y}%` }}>{suit}</i>)
+      : rank === "A" ? <i className="pcard-ace">{suit}</i>
+      : <span className="pcard-court"><b>{rank}</b><i>{suit}</i></span>}
+    <span className="pcard-corner flip">{corner}</span>
+    {position && <small className="pcard-position">{position}</small>}
+  </span>;
+}
+const Card = ({ card, mine, mini }: { card: PlayingCard; mine?: boolean; mini?: boolean }) => <span className={`holdem-card${mine ? " picked" : ""}${mini ? " mini" : ""}`} aria-label={cardText(card)}><PlayingCardFace text={cardText(card)} mini={mini}/></span>;
 
 function HandPanel({ review, playerId, opponentName }: { review: HoldemHandReview; playerId: string; opponentName: string }) {
   const opponentId = Object.keys(review.seats).find(id => id !== playerId);
@@ -17,7 +40,7 @@ function HandPanel({ review, playerId, opponentName }: { review: HoldemHandRevie
       if (!id || !seat) return null;
       return <article key={id} className={review.winnerId === id ? "won" : ""}>
         <small>{id === playerId ? "나" : opponentName} · {review.firstPlayerId === id ? "선공" : "후공"}</small>
-        <div className="holdem-row">{review.community.map((card, index) => <Card key={index} card={card}/>)}{seat.cards.map((card, index) => <Card key={`p${index}`} card={card} mine/>)}</div>
+        <div className="holdem-row">{review.community.map((card, index) => <Card key={index} card={card} mini/>)}{seat.cards.map((card, index) => <Card key={`p${index}`} card={card} mine mini/>)}</div>
         <b>{seat.label}</b>
       </article>;
     })}</div>
@@ -38,8 +61,8 @@ export function MemoryHoldemGame({ game, playerId, opponentName, emit }: Props) 
     <div className="find-score"><b>{game.wins[playerId] ?? 0}</b><span>먼저 {game.targetWins}승 · {phaseText}</span><b>{game.wins[opponentId] ?? 0}</b></div>
 
     {game.phase === "COIN" && <section className="holdem-coin">
-      <p className="eyebrow">{game.hand === 1 ? "COIN TOSS" : `${game.hand}번째 판 · 선택권 교대`}</p>
-      <strong>{game.hand === 1 ? (choosing ? "동전 던지기에서 이겼어요" : `${opponentName} 님이 동전 던지기에서 이겼어요`) : (choosing ? "이번 판은 내가 순서를 골라요" : `이번 판은 ${opponentName} 님이 순서를 골라요`)}</strong>
+      <p className="eyebrow">{game.hand === 1 ? "COIN TOSS" : `${game.hand}번째 판 · 진 쪽이 선택`}</p>
+      <strong>{game.hand === 1 ? (choosing ? "동전 던지기에서 이겼어요" : `${opponentName} 님이 동전 던지기에서 이겼어요`) : (choosing ? "지난 판에서 져서 이번 판 순서를 골라요" : `지난 판에서 진 ${opponentName} 님이 순서를 골라요`)}</strong>
       <p className="muted">선공은 첫 번째와 네 번째, 후공은 두 번째와 세 번째 카드를 골라요.</p>
       {choosing && <div className="holdem-roles">
         <button className="primary" onClick={() => emit("game:action", { type: "CHOOSE_ROLE", payload: { role: "FIRST" } })}>선공</button>
@@ -55,7 +78,8 @@ export function MemoryHoldemGame({ game, playerId, opponentName, emit }: Props) 
       <div className={`memory-board ${game.phase === "MEMORIZE" ? "memorizing" : ""}`}>{game.board.map((card, index) => {
         const owner = game.owners[index];
         return <MemoryCard key={index} index={index} value={card ? cardText(card) : null} selectionOrder={0}
-          tone={`${card && isRed(card) ? "red-suit" : ""}${owner ? owner === playerId ? " owned-mine" : " owned-opponent" : ""}`}
+          tone={owner ? owner === playerId ? "owned-mine" : "owned-opponent" : ""}
+          renderFace={(text, position) => <PlayingCardFace text={String(text)} position={position}/>}
           badge={owner ? owner === playerId ? "나" : "상대" : undefined}
           disabled={!myTurn || owner !== null}
           onPick={() => emit("game:action", { type: "PICK_CARD", payload: { index, hand: game.hand, pick: game.pickNumber } })}/>;
