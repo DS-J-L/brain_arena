@@ -128,7 +128,7 @@ export function advanceMemoryHoldemPhase(state: MemoryHoldemState) {
     const free = next.owners.flatMap((owner, index) => owner === null ? [index] : []);
     pick(next, free[Math.floor(Math.random() * free.length)]);
   } else if (next.pendingWinnerId) { next.winnerId = next.pendingWinnerId; next.pendingWinnerId = null; next.deadline = null; }
-  else { next.hand++; next.chooserId = other(next, next.chooserId); deal(next); }
+  else { next.hand++; next.chooserId = other(next, next.showdown!.winnerId!); deal(next); }
   return next;
 }
 
@@ -137,7 +137,7 @@ export const memoryHoldemEngine: GameEngine<MemoryHoldemState, HoldemAction, Mem
     if (ids.length !== 2) throw new Error("두 명의 플레이어가 필요합니다.");
     const state: MemoryHoldemState = {
       playerIds: ids, phase: "COIN", hand: 1, wins: Object.fromEntries(ids.map(id => [id, 0])),
-      // 첫 판은 동전 던지기, 이후에는 판마다 선택권을 교대한다.
+      // 첫 판은 동전 던지기, 이후에는 직전 판에서 진 쪽이 순서를 고른다.
       chooserId: ids[Math.floor(Math.random() * 2)], firstPlayerId: null, board: [], community: [], owners: [], picks: 0,
       showdown: null, history: [], pendingWinnerId: null, winnerId: null, isDraw: false, deadline: null,
     };

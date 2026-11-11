@@ -165,10 +165,10 @@ nav{position:sticky;top:0;z-index:15;max-width:none;padding:0 max(30px,calc((100
 .holdem-community{display:grid;justify-items:center;gap:8px;margin:20px 0}
 .holdem-community small{font-size:11px;letter-spacing:1.2px;color:#8f88a0}
 .holdem-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
-.holdem-card{min-width:48px;padding:10px 6px;text-align:center;font:20px "DM Mono";color:#17121e;background:linear-gradient(145deg,#f6f2fb,#ded7e8);border:2px solid #655775;border-radius:6px}
-.holdem-card.red-suit,.memory-card.red-suit .memory-card-front{color:#c22b4c}
-.holdem-card.hidden{color:#776e85;background:repeating-linear-gradient(135deg,#211a32 0 10px,#261e3a 10px 20px);border-color:#453858}
-.holdem-card.picked{border-color:var(--lime);box-shadow:0 0 0 2px #c8ff4340}
+.holdem-card{display:block;width:72px;aspect-ratio:5/7;background:#fbfaf7;border:1px solid #cfc8da;border-radius:7px;box-shadow:0 4px 10px #0006}
+.holdem-card.mini{width:40px;aspect-ratio:4/5;border-radius:5px}
+.holdem-card.hidden{display:grid;place-items:center;font:22px "DM Mono";color:#776e85;background:repeating-linear-gradient(135deg,#211a32 0 10px,#261e3a 10px 20px);border-color:#453858}
+.holdem-card.picked{border-color:var(--lime);box-shadow:0 0 0 2px var(--lime)}
 .memory-card .memory-card-badge{width:auto;height:21px;padding:0 8px;border-radius:11px;font:700 11px "Noto Sans KR";z-index:1}
 .memory-card.owned-mine .memory-card-face{border-color:var(--lime);box-shadow:0 0 0 2px #c8ff4340}
 .memory-card.owned-opponent .memory-card-face{border-color:var(--danger)}
@@ -184,5 +184,31 @@ nav{position:sticky;top:0;z-index:15;max-width:none;padding:0 max(30px,calc((100
 .holdem-hands article.won{border-color:var(--lime)}
 .holdem-hands small{font-size:11px;color:var(--text-2)}
 .holdem-hands b{font-size:14px;color:var(--lime)}
-.holdem-hands .holdem-card{min-width:38px;padding:6px 3px;font-size:15px}
-@media(max-width:600px){.holdem-hands{grid-template-columns:1fr}.holdem-card{min-width:42px;font-size:18px}.holdem-game .memory-card strong{font-size:20px}}
+@media(max-width:600px){.holdem-hands{grid-template-columns:1fr}.holdem-card{width:62px}.holdem-card.mini{width:40px}}
+
+/* Memory Hold'em playing cards: sizes follow the card width (cqw), so one face scales from board to community row. */
+.holdem-game .memory-board{max-width:440px}
+.holdem-game .memory-card{min-height:0;aspect-ratio:3/4}
+.holdem-game .memory-card-face{border-radius:9px}
+.holdem-game .memory-card-front{padding:0;background:#fbfaf7;border:1px solid #cfc8da}
+.holdem-game .memory-card-back{background:radial-gradient(circle at 50% 50%,#3a2a63 0 34%,transparent 35%),repeating-linear-gradient(45deg,#2a2044 0 6px,#211a36 6px 12px);border:1px solid #5a4a80;box-shadow:inset 0 0 0 4px #1a1529,inset 0 0 0 5px #5a4a80,0 6px 16px #0005}
+.holdem-game .memory-card-back small{display:none}
+.holdem-game .memory-card.owned-mine .memory-card-face{border-color:var(--lime);box-shadow:0 0 0 2px var(--lime)}
+.holdem-game .memory-card.owned-opponent .memory-card-face{border-color:var(--danger);box-shadow:0 0 0 2px var(--danger)}
+.pcard{position:relative;display:block;width:100%;height:100%;container-type:size;color:#1b1626;font-family:"DM Mono",monospace;line-height:1;overflow:hidden;border-radius:inherit}
+.pcard.red{color:#c8203f}
+.pcard i{font-style:normal}
+.pcard-corner{position:absolute;top:5cqw;left:6cqw;display:grid;justify-items:center;gap:1cqw}
+.pcard-corner b{font-size:19cqw;font-weight:700;letter-spacing:-2.5cqw}
+.pcard-corner i{font-size:15cqw}
+.pcard-corner.flip{top:auto;left:auto;bottom:5cqw;right:6cqw;transform:rotate(180deg)}
+.pcard-pip{position:absolute;font-size:17cqw;transform:translate(-50%,-50%)}
+.pcard-pip.flip{transform:translate(-50%,-50%) rotate(180deg)}
+.pcard-ace{position:absolute;inset:0;display:grid;place-items:center;font-size:60cqw}
+.pcard-court{position:absolute;inset:17cqh 25cqw;display:grid;place-items:center;align-content:center;gap:3cqw;border:1px solid currentColor;border-radius:4cqw;background:linear-gradient(160deg,color-mix(in srgb,currentColor 14%,transparent),color-mix(in srgb,currentColor 4%,transparent))}
+.pcard-court b{font-size:34cqw;font-weight:700}
+.pcard-court i{font-size:24cqw}
+.memory-board .pcard-position{top:auto;left:6cqw;bottom:5cqw;font-size:max(9px,10cqw);color:#8b8497}
+.pcard.mini{display:grid;place-items:center;align-content:center;gap:4cqw}
+.pcard.mini b{font-size:44cqw;font-weight:700;letter-spacing:-2cqw}
+.pcard.mini i{font-size:40cqw}

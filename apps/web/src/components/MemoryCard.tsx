@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { NumberCardValue } from "@brain-arena/shared";
 
 interface Props {
@@ -11,12 +11,14 @@ interface Props {
   tone?: string;
   /** 선택 순번 대신 보여줄 표시 (예: 누가 가져간 칸인지) */
   badge?: string;
+  /** 앞면을 직접 그릴 때 사용한다. 뒤집히는 동안에는 직전 값이 넘어온다. */
+  renderFace?: (value: NumberCardValue | string, label: string) => ReactNode;
 }
 
 // Keep the outgoing face until its 600 ms CSS rotation has finished.
 const FLIP_DURATION_MS = 600;
 
-export function MemoryCard({ index, value, selectionOrder, disabled, onPick, tone = "", badge }: Props) {
+export function MemoryCard({ index, value, selectionOrder, disabled, onPick, tone = "", badge, renderFace }: Props) {
   const [outgoingValue, setOutgoingValue] = useState(value);
   const faceUp = value !== null;
   const label = String.fromCharCode(65 + index);
@@ -44,8 +46,9 @@ export function MemoryCard({ index, value, selectionOrder, disabled, onPick, ton
           <strong>{label}</strong>
         </span>
         <span className="memory-card-face memory-card-front">
-          <small>{label}</small>
-          <strong>{value ?? outgoingValue}</strong>
+          {renderFace
+            ? (value ?? outgoingValue) !== null && renderFace((value ?? outgoingValue)!, label)
+            : <><small>{label}</small><strong>{value ?? outgoingValue}</strong></>}
         </span>
       </span>
       {selectionOrder > 0 && <em aria-hidden="true">{selectionOrder}</em>}
