@@ -97,7 +97,7 @@ function resolve(state: MemoryHoldemState) {
   // 두 사람의 카드가 다르므로 무늬 비교까지 가면 승자가 반드시 정해진다.
   const [a, b] = evaluated, winner = compareScores(a.score, b.score) > 0 ? a : b, loser = winner === a ? b : a;
   const at = winner.score.findIndex((value, index) => value !== loser.score[index]), suitAt = at - winner.rankLength;
-  const reason = winner.label !== loser.label ? `${winner.label}${hasBatchim(winner.label) ? "이" : "가"} ${loser.label}${hasBatchim(loser.label) ? "을" : "를"} 이겼어요`
+  const reason = winner.label !== loser.label ? `${winner.label}${hasBatchim(winner.label) ? "이" : "가"} ${loser.label}${hasBatchim(loser.label) ? "을" : "를"} 이겼습니다`
     : suitAt < 0 ? `같은 ${winner.label} · 키커 ${cardRankName(winner.score[at])} > ${cardRankName(loser.score[at])}`
     : `숫자가 모두 같은 ${winner.label} · 무늬 ${cardText(winner.ordered[suitAt])} > ${cardText(loser.ordered[suitAt])}`;
   const review: HoldemHandReview = {

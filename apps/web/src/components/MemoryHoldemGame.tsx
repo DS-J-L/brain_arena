@@ -52,18 +52,18 @@ export function MemoryHoldemGame({ game, playerId, opponentName, emit }: Props) 
   const iAmFirst = game.firstPlayerId === playerId, myTurn = game.phase === "PICK" && game.currentPlayerId === playerId, choosing = game.phase === "COIN" && game.chooserId === playerId;
   const count = (id: string) => game.owners.filter(owner => owner === id).length;
   const role = (id: string) => game.firstPlayerId === null ? "" : game.firstPlayerId === id ? "선공" : "후공";
-  const phaseText = game.phase === "COIN" ? (choosing ? "선공과 후공 중 하나를 고르세요" : `${opponentName} 님이 순서를 고르는 중`)
+  const phaseText = game.phase === "COIN" ? (choosing ? "선공과 후공 중 하나를 고르세요" : "상대가 순서를 고르는 중입니다")
     : game.phase === "MEMORIZE" ? `나는 ${role(playerId)} · 카드 16장의 위치를 기억하세요`
-    : game.phase === "PICK" ? (myTurn ? (game.pickNumber === 3 ? "내 차례 · 두 번째 카드를 고르세요" : "내 차례 · 카드 한 장을 고르세요") : `상대 차례 · ${opponentName} 님이 고르는 중`)
-    : game.winnerId ? "경기 종료" : "패 공개 · 곧 다음 판이 시작돼요";
+    : game.phase === "PICK" ? (myTurn ? (game.pickNumber === 3 ? "내 차례 · 두 번째 카드를 고르세요" : "내 차례 · 카드 한 장을 고르세요") : "상대 차례 · 상대가 카드를 고르는 중입니다")
+    : game.winnerId ? "경기 종료" : "패 공개 · 곧 다음 판이 시작됩니다";
 
   return <div className="holdem-game">
     <div className="find-score"><b>{game.wins[playerId] ?? 0}</b><span>먼저 {game.targetWins}승 · {phaseText}</span><b>{game.wins[opponentId] ?? 0}</b></div>
 
     {game.phase === "COIN" && <section className="holdem-coin">
       <p className="eyebrow">{game.hand === 1 ? "COIN TOSS" : `${game.hand}번째 판 · 진 쪽이 선택`}</p>
-      <strong>{game.hand === 1 ? (choosing ? "동전 던지기에서 이겼어요" : `${opponentName} 님이 동전 던지기에서 이겼어요`) : (choosing ? "지난 판에서 져서 이번 판 순서를 골라요" : `지난 판에서 진 ${opponentName} 님이 순서를 골라요`)}</strong>
-      <p className="muted">선공은 첫 번째와 네 번째, 후공은 두 번째와 세 번째 카드를 골라요.</p>
+      <strong>{game.hand === 1 ? (choosing ? "동전 던지기에서 이겼습니다" : `${opponentName} 님이 동전 던지기에서 이겼습니다`) : (choosing ? "지난 판에서 져 이번 판의 순서를 고릅니다" : `지난 판에서 진 ${opponentName} 님이 순서를 고릅니다`)}</strong>
+      <p className="muted">선공은 첫 번째와 네 번째, 후공은 두 번째와 세 번째 카드를 고릅니다.</p>
       {choosing && <div className="holdem-roles">
         <button className="primary" onClick={() => emit("game:action", { type: "CHOOSE_ROLE", payload: { role: "FIRST" } })}>선공</button>
         <button className="secondary" onClick={() => emit("game:action", { type: "CHOOSE_ROLE", payload: { role: "SECOND" } })}>후공</button>
@@ -89,7 +89,7 @@ export function MemoryHoldemGame({ game, playerId, opponentName, emit }: Props) 
       {game.phase === "SHOWDOWN" && game.showdown && <HandPanel review={game.showdown} playerId={playerId} opponentName={opponentName}/>}
     </>}
     {game.phase !== "SHOWDOWN" && game.history.length > 0 && <p className="holdem-progress holdem-past">{game.history.map(review => <span key={review.hand}>{review.hand}판 {review.winnerId === null ? "무" : review.winnerId === playerId ? "승" : "패"}</span>)}</p>}
-    {iAmFirst && game.phase === "PICK" && game.pickNumber === 1 && myTurn && <p className="memory-hint">첫 카드를 고른 뒤에는 상대가 두 장을 연속으로 골라요.</p>}
+    {iAmFirst && game.phase === "PICK" && game.pickNumber === 1 && myTurn && <p className="memory-hint">첫 카드를 고른 뒤에는 상대가 두 장을 연속으로 고릅니다.</p>}
   </div>;
 }
 

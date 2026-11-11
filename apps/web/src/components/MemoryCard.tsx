@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { playSound } from "../sound";
 import type { NumberCardValue } from "@brain-arena/shared";
 
 interface Props {
@@ -22,6 +23,14 @@ export function MemoryCard({ index, value, selectionOrder, disabled, onPick, ton
   const [outgoingValue, setOutgoingValue] = useState(value);
   const faceUp = value !== null;
   const label = String.fromCharCode(65 + index);
+  // 앞면으로 처음 깔릴 때도 소리가 나도록 뒷면에서 시작한 것으로 본다.
+  const wasFaceUp = useRef(false);
+
+  useEffect(() => {
+    if (wasFaceUp.current === faceUp) return;
+    wasFaceUp.current = faceUp;
+    playSound("flip");
+  }, [faceUp]);
 
   useEffect(() => {
     if (value !== null) {

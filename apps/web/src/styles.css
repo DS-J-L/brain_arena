@@ -212,3 +212,10 @@ nav{position:sticky;top:0;z-index:15;max-width:none;padding:0 max(30px,calc((100
 .pcard.mini{display:grid;place-items:center;align-content:center;gap:4cqw}
 .pcard.mini b{font-size:44cqw;font-weight:700;letter-spacing:-2cqw}
 .pcard.mini i{font-size:40cqw}
+
+/* Sound toggle: mirrors the connection badge on the opposite corner. */
+.sound-toggle{position:fixed;z-index:20;left:18px;bottom:16px;display:flex;align-items:center;gap:7px;padding:7px 11px;font-size:11px;color:#aaa3b8;background:#201b31;border:1px solid var(--line);border-radius:99px;box-shadow:0 8px 30px #0008}
+.sound-toggle i{font-style:normal;color:var(--lime)}
+.sound-toggle:hover{border-color:var(--border-strong);color:var(--text)}
+.sound-toggle.is-muted{color:#7d768c}
+.sound-toggle.is-muted i{color:#7d768c;text-decoration:line-through}
