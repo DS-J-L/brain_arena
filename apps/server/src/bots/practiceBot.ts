@@ -212,6 +212,13 @@ export function decidePracticeBot(view: GameView, botId: string): BotDecision | 
     case "SECRET_DICE": return decideSecretDice(view, botId);
     case "INDIAN_POKER": return decidePoker(view, botId);
     case "FIND_THE_NUMBER": return null;
+    case "MEMORY_HOLDEM": {
+      if (view.phase === "COIN" && view.chooserId === botId) return { type: "CHOOSE_ROLE", payload: { role: Math.random() < .5 ? "FIRST" : "SECOND" } };
+      if (view.phase !== "PICK" || view.currentPlayerId !== botId) return null;
+      // shortcut: 봇은 판 사이 기억이 없어 남은 칸에서 무작위로 고른다. 암기하는 봇이 필요하면 방 상태에 봇 기억을 둘 것.
+      const free = view.owners.flatMap((owner, index) => owner === null ? [index] : []);
+      return { type: "PICK_CARD", payload: { index: free[Math.floor(Math.random() * free.length)], hand: view.hand, pick: view.pickNumber } };
+    }
     case "GYEOL_HAP_1":
     case "GYEOL_HAP": {
       if (view.currentPlayerId !== botId || (view.phase !== "TURN" && view.phase !== "SELECT")) return null;
