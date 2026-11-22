@@ -106,6 +106,10 @@ export interface FindNumberHistoryView { round: number; target: number; playerId
 export interface FindTheNumberView extends GameViewBase {
   kind: "FIND_THE_NUMBER";
   phase: FindNumberPhase;
+  playerIds: string[];
+  targetScore: number;
+  /** 이번 목표 숫자에서 이미 오답을 내 부저를 누를 수 없는 플레이어 */
+  lockedOutIds: string[];
   round: number;
   scores: Record<string, number>;
   target: number | null;
@@ -129,6 +133,10 @@ export interface HapTile {
 export type HapGameType = "GYEOL_HAP_1" | "GYEOL_HAP";
 export const HAP_ROUNDS = 3;
 export const HAP_STALL_TURNS = 4;
+/** 인원이 늘면 모두가 한 번씩 선공하도록 라운드를 늘린다. */
+export const hapRounds = (players: number) => Math.max(HAP_ROUNDS, players);
+/** 인원이 늘어도 각자 두 번의 기회를 갖도록 정체 판정 턴을 늘린다. */
+export const hapStallTurns = (players: number) => Math.max(HAP_STALL_TURNS, players * 2);
 export const HAP_MODES = {
   GYEOL_HAP_1: { shapes: HAP_SHAPES.slice(0, 3), colors: HAP_COLORS.slice(0, 3), backgrounds: HAP_BACKGROUNDS },
   GYEOL_HAP: { shapes: HAP_SHAPES, colors: HAP_COLORS, backgrounds: HAP_BACKGROUNDS },
@@ -154,6 +162,10 @@ export interface HapRoundReview {
 export interface GyeolHapView extends GameViewBase {
   kind: HapGameType;
   phase: "TURN" | "SELECT" | "RESULT" | "ROUND_END";
+  /** 차례 순서 */
+  playerIds: string[];
+  totalRounds: number;
+  stallTurns: number;
   round: number;
   turnId: number;
   currentPlayerId: string;
@@ -209,6 +221,8 @@ export interface RoomView {
   status: RoomStatus;
   gameState: GameView | null;
   isPractice: boolean;
+  /** 게임 도중 나간 플레이어의 닉네임. 기록과 순위에 이름을 남기기 위해 쓴다. */
+  departedNames: Record<string, string>;
 }
 
 export interface Ack<T = undefined> { ok: boolean; data?: T; error?: string }
@@ -218,13 +232,15 @@ export interface JoinRoomPayload { nickname: string; roomCode: string; playerId?
 export interface PlayerRoomPayload { roomCode: string; playerId: string }
 export interface GameActionPayload extends PlayerRoomPayload { type: string; payload?: unknown }
 
-export const GAME_INFO: Record<GameType, { name: string; description: string; duration: string; difficulty: string; available: boolean }> = {
-  BLACK_AND_WHITE: { name: "흑과 백", description: "색으로 숫자를 추리하는 순차 심리전", duration: "5~10분", difficulty: "쉬움", available: true },
-  ASCENDING: { name: "배틀 오름차순", description: "두 카드 중 하나를 고르고 가장 긴 오름차순을 완성하세요", duration: "5~10분", difficulty: "보통", available: true },
-  SECRET_DICE: { name: "시크릿 다이스", description: "공격과 수비가 함께 만드는 주사위 족보", duration: "15~25분", difficulty: "보통", available: true },
-  INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true },
-  FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true },
-  GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true },
-  GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true },
-  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 위치를 기억해 두 장으로 족보를 겨루는 5판 3선승 대결", duration: "5~10분", difficulty: "보통", available: true }
+export const findNumberTargetScore = (players: number) => players > 2 ? 5 : 6;
+export const MIN_PLAYERS = 2;
+export const GAME_INFO: Record<GameType, { name: string; description: string; duration: string; difficulty: string; available: boolean; maxPlayers: number }> = {
+  BLACK_AND_WHITE: { name: "흑과 백", description: "색으로 숫자를 추리하는 순차 심리전", duration: "5~10분", difficulty: "쉬움", available: true, maxPlayers: 2 },
+  ASCENDING: { name: "배틀 오름차순", description: "두 카드 중 하나를 고르고 가장 긴 오름차순을 완성하세요", duration: "5~10분", difficulty: "보통", available: true, maxPlayers: 2 },
+  SECRET_DICE: { name: "시크릿 다이스", description: "공격과 수비가 함께 만드는 주사위 족보", duration: "15~25분", difficulty: "보통", available: true, maxPlayers: 2 },
+  INDIAN_POKER: { name: "인디언 포커", description: "상대 카드만 보고 벌이는 베팅", duration: "10~20분", difficulty: "어려움", available: true, maxPlayers: 2 },
+  FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true, maxPlayers: 4 },
+  GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true, maxPlayers: 4 },
+  GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true, maxPlayers: 4 },
+  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 위치를 기억해 두 장으로 족보를 겨루는 5판 3선승 대결", duration: "5~10분", difficulty: "보통", available: true, maxPlayers: 2 }
 };

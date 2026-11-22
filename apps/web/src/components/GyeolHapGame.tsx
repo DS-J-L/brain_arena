@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { checkHap, HAP_ROUNDS, HAP_STALL_TURNS, type GyeolHapView, type HapAttempt, type HapCheck, type HapTile } from "@brain-arena/shared";
+import { PlayerScores } from "./PlayerScores";
+import { checkHap, type GyeolHapView, type HapAttempt, type HapCheck, type HapTile } from "@brain-arena/shared";
 
 const shapes = { CIRCLE: "원", STAR: "별", TRIANGLE: "삼각형", SQUARE: "사각형", SUN: "해" };
 const colors = { PURPLE: "보라", GREEN: "녹색", ORANGE: "주황", YELLOW: "노랑" };
@@ -48,7 +49,7 @@ function Checks({ checks }: { checks: HapCheck }) {
   </span>)}</div>;
 }
 
-export function GyeolHapGame({ game, playerId, opponentName, emit }: { game: GyeolHapView; playerId: string; opponentName: string; emit: (event: string, payload?: object) => void }) {
+export function GyeolHapGame({ game, playerId, nameOf, emit }: { game: GyeolHapView; playerId: string; nameOf: (id: string) => string; emit: (event: string, payload?: object) => void }) {
   const [selected, setSelected] = useState<number[]>([]);
   const submitted = useRef(false);
   useEffect(() => { setSelected([]); submitted.current = false; }, [game.round, game.turnId, game.phase]);
@@ -56,10 +57,12 @@ export function GyeolHapGame({ game, playerId, opponentName, emit }: { game: Gye
   const live = game.deadline !== null && Date.now() < game.deadline && !game.winnerId;
   const choosing = mine && game.phase === "SELECT" && live;
   const deciding = mine && game.phase === "TURN" && live;
-  const opponentId = Object.keys(game.scores).find(id => id !== playerId)!;
-  const status = game.phase === "ROUND_END" ? game.round === HAP_ROUNDS ? "3라운드 종료 · 최종 점수 집계 중" : game.lastResult?.reason === "GYEOL" ? "결 성공 · 다음 보드 준비 중" : "4턴 동안 새 합을 못 찾았습니다 · 다음 보드 준비 중" : game.phase === "RESULT" ? "판정 결과 확인 중"
-    : game.phase === "SELECT" ? mine ? selected.length === 3 ? "판정 중입니다" : "10초 안에 타일 3개를 고르면 바로 판정합니다" : `${opponentName}님이 합을 선택 중입니다`
-      : mine ? "내 차례 · 합을 찾거나 결을 선언하세요" : `${opponentName}님의 차례`;
+  const multi = game.playerIds.length > 2;
+  const opponentId = game.playerIds.find(id => id !== playerId) ?? "";
+  const current = nameOf(game.currentPlayerId);
+  const status = game.phase === "ROUND_END" ? game.round >= game.totalRounds ? `${game.totalRounds}라운드 종료 · 최종 점수 집계 중` : game.lastResult?.reason === "GYEOL" ? "결 성공 · 다음 보드 준비 중" : `${game.stallTurns}턴 동안 새 합을 못 찾았습니다 · 다음 보드 준비 중` : game.phase === "RESULT" ? "판정 결과 확인 중"
+    : game.phase === "SELECT" ? mine ? selected.length === 3 ? "판정 중입니다" : "10초 안에 타일 3개를 고르면 바로 판정합니다" : `${current}님이 합을 선택 중입니다`
+      : mine ? "내 차례 · 합을 찾거나 결을 선언하세요" : `${current}님의 차례`;
   const send = (type: string, numbers?: number[]) => emit("game:action", { type, payload: { round: game.round, turnId: game.turnId, ...(numbers ? { numbers } : {}) } });
   const pick = (number: number) => {
     if (!choosing || submitted.current) return;
@@ -71,18 +74,19 @@ export function GyeolHapGame({ game, playerId, opponentName, emit }: { game: Gye
     }
   };
   return <div className="hap-game">
-    <div className="hap-scores"><div><small>나</small><strong>{game.scores[playerId]}<em>점</em></strong></div><p role="status">{status}</p><div><small>{opponentName}</small><strong>{game.scores[opponentId]}<em>점</em></strong></div></div>
+    {multi ? <><PlayerScores playerIds={game.playerIds} scores={game.scores} playerId={playerId} nameOf={nameOf} activeId={game.phase === "TURN" || game.phase === "SELECT" ? game.currentPlayerId : null} /><p className="multi-status" role="status">{status}</p></>
+      : <div className="hap-scores"><div><small>나</small><strong>{game.scores[playerId]}<em>점</em></strong></div><p role="status">{status}</p><div><small>{nameOf(opponentId)}</small><strong>{game.scores[opponentId]}<em>점</em></strong></div></div>}
     <HapBoard board={game.board} selected={selected} interactive={choosing && selected.length < 3} onPick={pick} />
     <div className="hap-actions"><button className="secondary" disabled={!deciding} onClick={() => send("GYEOL")}>결!<small>남은 합이 없다면 +3점</small></button><button className="primary" disabled={!deciding} onClick={() => send("HAP")}>합!<small>새로운 합을 찾았다면 +1점</small></button></div>
     {game.phase === "SELECT" && mine && <div className="hap-submit"><p>선택한 타일 <b>{selected.length ? [...selected].sort((a, b) => a - b).join(" · ") : "없음"}</b><span>{selected.length}/3</span></p></div>}
     {game.lastResult && <div className={`hap-result ${game.lastResult.delta < 0 ? "wrong" : "correct"}`} role="status">
-      <strong>{game.lastResult.playerId === playerId ? "나" : opponentName} · {reasons[game.lastResult.reason]} · {game.lastResult.delta > 0 ? "+" : ""}{game.lastResult.delta}점</strong>
+      <strong>{nameOf(game.lastResult.playerId)} · {reasons[game.lastResult.reason]} · {game.lastResult.delta > 0 ? "+" : ""}{game.lastResult.delta}점</strong>
       {game.lastResult.numbers.length > 0 && <p>{game.lastResult.numbers.join(" · ")}</p>}
       {game.lastResult.checks && <Checks checks={game.lastResult.checks} />}
     </div>}
     <section className="hap-found"><h3>이번 라운드에서 찾은 합 <span>{game.foundHaps.length}개</span></h3>
-      {game.foundHaps.length === 0 ? <p className="muted">아직 찾은 합이 없습니다.</p> : <ul>{game.foundHaps.map(found => <li key={found.numbers.join(",")}><b>{found.numbers.join(" · ")}</b><span>{found.playerId === playerId ? "나" : opponentName}</span></li>)}</ul>}
-      <p className="hap-hint">속성마다 모두 같거나 모두 달라야 합입니다. 찾은 타일도 다시 사용할 수 있습니다.</p><p className="hap-hint">새 합을 못 찾은 차례 {game.unsuccessfulTurns}/{HAP_STALL_TURNS} · 합이 남아 있으면 4턴 후 새 보드로 넘어갑니다.</p><p className="hap-hint">총 3라운드 누적 점수 대결 · 15초 무응답은 패스, 합 선언 후 10초 초과는 −1점</p>
+      {game.foundHaps.length === 0 ? <p className="muted">아직 찾은 합이 없습니다.</p> : <ul>{game.foundHaps.map(found => <li key={found.numbers.join(",")}><b>{found.numbers.join(" · ")}</b><span>{nameOf(found.playerId)}</span></li>)}</ul>}
+      <p className="hap-hint">속성마다 모두 같거나 모두 달라야 합입니다. 찾은 타일도 다시 사용할 수 있습니다.</p><p className="hap-hint">새 합을 못 찾은 차례 {game.unsuccessfulTurns}/{game.stallTurns} · 합이 남아 있으면 {game.stallTurns}턴 후 새 보드로 넘어갑니다.</p><p className="hap-hint">총 {game.totalRounds}라운드 누적 점수 대결 · 15초 무응답은 패스, 합 선언 후 10초 초과는 −1점</p>
     </section>
   </div>;
 }
@@ -104,13 +108,13 @@ function HapReviewCombination({ board, numbers, checks, label }: { board: HapTil
   </div>;
 }
 
-export function GyeolHapReview({ game, playerId, opponentName }: { game: GyeolHapView; playerId: string; opponentName: string }) {
+export function GyeolHapReview({ game, nameOf }: { game: GyeolHapView; nameOf: (id: string) => string }) {
   return <section className="match-review hap-review"><div className="review-heading"><div><p className="eyebrow">MATCH REVIEW</p><h2>합 조합과 판정 복기</h2></div><p>찾은 합과 찾지 못한 합을 타일 조합과 속성별 판정으로 확인하세요.</p></div>
-    {game.history.map(round => <details key={round.round} open><summary>{round.round}라운드 · 찾은 합 {round.foundHaps.length}개 · 찾지 못한 합 {round.missedHaps.length}개 · {round.endReason === "GYEOL" ? "결 성공" : round.endReason === "STALLED" ? "4턴 동안 새 합 없음" : "기권 종료"}</summary>
+    {game.history.map(round => <details key={round.round} open><summary>{round.round}라운드 · 찾은 합 {round.foundHaps.length}개 · 찾지 못한 합 {round.missedHaps.length}개 · {round.endReason === "GYEOL" ? "결 성공" : round.endReason === "STALLED" ? `${game.stallTurns}턴 동안 새 합 없음` : "기권 종료"}</summary>
       <HapBoard board={round.board} />
       <h3>찾지 못한 합 · {round.missedHaps.length}개</h3>{round.missedHaps.length === 0 ? <p>찾지 못한 합이 없습니다.</p> : round.missedHaps.map(answer => <HapReviewCombination key={answer.numbers.join(",")} board={round.board} numbers={answer.numbers} checks={answer.checks} label="찾지 못한 합" />)}
-      <h3>찾은 합 · {round.foundHaps.length}개</h3>{round.foundHaps.length === 0 ? <p>찾은 합이 없습니다.</p> : round.foundHaps.map(answer => <HapReviewCombination key={answer.numbers.join(",")} board={round.board} numbers={answer.numbers} checks={checkHap(answer.numbers.map(number => round.board[number - 1]))} label={`찾은 합 · ${answer.playerId === playerId ? "나" : opponentName}`} />)}
-      <h3>제출과 진행 기록</h3>{round.attempts.map((attempt, index) => <div className="hap-review-answer" key={index}><p>{attempt.playerId === playerId ? "나" : opponentName} · {attempt.numbers.join(" · ")} {reasons[attempt.reason]} · {attempt.delta > 0 ? "+" : ""}{attempt.delta}점</p>{attempt.checks && <Checks checks={attempt.checks} />}</div>)}
+      <h3>찾은 합 · {round.foundHaps.length}개</h3>{round.foundHaps.length === 0 ? <p>찾은 합이 없습니다.</p> : round.foundHaps.map(answer => <HapReviewCombination key={answer.numbers.join(",")} board={round.board} numbers={answer.numbers} checks={checkHap(answer.numbers.map(number => round.board[number - 1]))} label={`찾은 합 · ${nameOf(answer.playerId)}`} />)}
+      <h3>제출과 진행 기록</h3>{round.attempts.map((attempt, index) => <div className="hap-review-answer" key={index}><p>{nameOf(attempt.playerId)} · {attempt.numbers.join(" · ")} {reasons[attempt.reason]} · {attempt.delta > 0 ? "+" : ""}{attempt.delta}점</p>{attempt.checks && <Checks checks={attempt.checks} />}</div>)}
     </details>)}
   </section>;
 }
