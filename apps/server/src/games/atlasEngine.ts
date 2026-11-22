@@ -37,7 +37,7 @@ export interface AtlasState {
 
 export const ATLAS_TIMES = { SUBMIT: 30_000, DECIDE: 15_000, RESULT: 5_000 };
 const freshHand = (): AtlasHand => ({
-  numbers: Array.from({ length: ATLAS_MAX_NUMBER }, (_, index) => index + 1),
+  numbers: Array.from({ length: ATLAS_MAX_NUMBER + 1 }, (_, index) => index),
   tokens: { RED: 2, GREEN: 2, BLUE: 2, RAINBOW: 1 },
 });
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);

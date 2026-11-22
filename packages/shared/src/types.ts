@@ -219,11 +219,12 @@ export const ATLAS_TOKENS = [...ATLAS_COLORS, "RAINBOW"] as const;
 export type AtlasToken = (typeof ATLAS_TOKENS)[number];
 export const ATLAS_COLOR_NAMES: Record<AtlasToken, string> = { RED: "빨강", GREEN: "초록", BLUE: "파랑", RAINBOW: "무지개" };
 export const ATLAS_ROUNDS = 14;
-export const ATLAS_MAX_NUMBER = 7;
+/** 블록은 0부터 이 숫자까지 하나씩(0~6, 7개) */
+export const ATLAS_MAX_NUMBER = 6;
 /** 이 라운드가 시작될 때 블록과 토큰을 새로 받는다. 블록 7개·토큰 7개로 7라운드를 두 번 치른다. */
 export const ATLAS_REFILL_ROUND = 8;
-/** 거인이 버티는 합의 한계. 합이 이 값을 넘으면 무너진다: 2인 9 이상, 3인 11 이상, 4인 13 이상. */
-export const atlasLimit = (players: number) => players >= 4 ? 12 : players === 3 ? 10 : 8;
+/** 거인이 버티는 합의 한계. 합이 이 값을 넘으면 무너진다: 2인 8 이상, 3인 10 이상, 4인 12 이상. */
+export const atlasLimit = (players: number) => players >= 4 ? 11 : players === 3 ? 9 : 7;
 export interface AtlasHand { numbers: number[]; tokens: Record<AtlasToken, number> }
 export interface AtlasSubmission { playerId: string; number: number; token: AtlasToken }
 export interface AtlasPlacement {
