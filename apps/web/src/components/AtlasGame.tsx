@@ -95,7 +95,7 @@ export function AtlasGame({ game, playerId, nameOf, emit }: Props) {
 
     {(game.phase === "SUBMIT" || game.phase === "PLACE") && <section className="atlas-hand">
       <p className="eyebrow">MY BLOCKS · 나만 볼 수 있습니다</p>
-      <div className="atlas-numbers">{Array.from({ length: game.maxNumber }, (_, i) => i + 1).map(n => {
+      <div className="atlas-numbers">{Array.from({ length: game.maxNumber + 1 }, (_, i) => i).map(n => {
         const chosen = number === n || submitted?.number === n;
         return <button key={n} aria-pressed={chosen} className={chosen ? "selected" : ""} disabled={!submitting || !hand.numbers.includes(n)} onClick={() => setNumber(n)}>{n}</button>;
       })}</div>
