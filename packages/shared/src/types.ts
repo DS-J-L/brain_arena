@@ -1,4 +1,4 @@
-export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP", "MEMORY_HOLDEM"] as const;
+export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP", "MEMORY_HOLDEM", "ATLAS"] as const;
 export type GameType = (typeof GAME_TYPES)[number];
 export type RoomStatus = "WAITING" | "PLAYING" | "FINISHED";
 
@@ -212,7 +212,70 @@ export interface MemoryHoldemView extends GameViewBase {
   history: HoldemHandReview[];
 }
 
-export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView | GyeolHapView | MemoryHoldemView;
+export const ATLAS_COLORS = ["RED", "GREEN", "BLUE"] as const;
+export type AtlasColor = (typeof ATLAS_COLORS)[number];
+/** 무지개 토큰은 블록을 올릴 차례에 아무 거인이나 고를 수 있다. */
+export const ATLAS_TOKENS = [...ATLAS_COLORS, "RAINBOW"] as const;
+export type AtlasToken = (typeof ATLAS_TOKENS)[number];
+export const ATLAS_COLOR_NAMES: Record<AtlasToken, string> = { RED: "빨강", GREEN: "초록", BLUE: "파랑", RAINBOW: "무지개" };
+export const ATLAS_ROUNDS = 14;
+export const ATLAS_MAX_NUMBER = 7;
+/** 이 라운드가 시작될 때 블록과 토큰을 새로 받는다. 블록 7개·토큰 7개로 7라운드를 두 번 치른다. */
+export const ATLAS_REFILL_ROUND = 8;
+/** 거인이 버티는 합의 한계. 합이 이 값을 넘으면 무너진다: 2인 9 이상, 3인 11 이상, 4인 13 이상. */
+export const atlasLimit = (players: number) => players >= 4 ? 12 : players === 3 ? 10 : 8;
+export interface AtlasHand { numbers: number[]; tokens: Record<AtlasToken, number> }
+export interface AtlasSubmission { playerId: string; number: number; token: AtlasToken }
+export interface AtlasPlacement {
+  playerId: string;
+  number: number;
+  token: AtlasToken;
+  /** 실제로 올린 거인 */
+  color: AtlasColor;
+  /** 이번 라운드에서 놓인 순서(1부터) */
+  order: number;
+  /** 블록을 올린 직후 거인이 든 블록. 무너졌다면 무너지기 직전 모습이다. */
+  blocks: number[];
+  total: number;
+  collapsed: boolean;
+  penalty: number;
+  /** 제한 시간이 지나 자동으로 처리되었는지 */
+  auto: boolean;
+}
+export interface AtlasRoundReview { round: number; leadPlayerId: string; submissions: AtlasSubmission[]; passedIds: string[]; placements: AtlasPlacement[] }
+export interface AtlasView extends GameViewBase {
+  kind: "ATLAS";
+  /** SUBMIT: 비공개 제출 · PLACE: 공개 후 차례대로 올리기(패스·무지개 선택) · RESULT: 라운드 결과 */
+  phase: "SUBMIT" | "PLACE" | "RESULT";
+  playerIds: string[];
+  round: number;
+  totalRounds: number;
+  limit: number;
+  maxNumber: number;
+  refillRound: number;
+  /** 선 플레이어. 같은 숫자끼리는 선부터 오른쪽 순서로 올린다. 블록을 먹은 사람이 다음 선이 된다. */
+  leadPlayerId: string;
+  giants: Record<AtlasColor, number[]>;
+  /** 내 남은 블록과 토큰. 다른 사람의 손은 알 수 없다. */
+  myHand: AtlasHand;
+  /** 벌점. 낮을수록 좋다. */
+  scores: Record<string, number>;
+  submittedIds: string[];
+  mySubmission: { number: number; token: AtlasToken } | null;
+  /** 공개된 이번 라운드 제출. SUBMIT 단계에서는 null */
+  submissions: AtlasSubmission[] | null;
+  /** 아직 올리지 않은 플레이어. 앞에서부터 올린다. */
+  queue: string[];
+  currentPlacerId: string | null;
+  canPass: boolean;
+  needsColor: boolean;
+  passedIds: string[];
+  placements: AtlasPlacement[];
+  /** 지난 라운드 기록. 게임이 끝난 뒤에만 공개한다. */
+  history: AtlasRoundReview[];
+}
+
+export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView | GyeolHapView | MemoryHoldemView | AtlasView;
 export interface RoomView {
   code: string;
   hostId: string;
@@ -242,5 +305,6 @@ export const GAME_INFO: Record<GameType, { name: string; description: string; du
   FIND_THE_NUMBER: { name: "숫자를 찾아라", description: "카드 위치를 기억하고 목표 숫자의 수식을 먼저 완성하세요", duration: "5~15분", difficulty: "보통", available: true, maxPlayers: 4 },
   GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true, maxPlayers: 4 },
   GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true, maxPlayers: 4 },
-  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 위치를 기억해 두 장으로 족보를 겨루는 5판 3선승 대결", duration: "5~10분", difficulty: "보통", available: true, maxPlayers: 2 }
+  MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 위치를 기억해 두 장으로 족보를 겨루는 5판 3선승 대결", duration: "5~10분", difficulty: "보통", available: true, maxPlayers: 2 },
+  ATLAS: { name: "아틀라스의 형벌", description: "세 거인 위에 숫자 블록을 쌓되, 한계를 넘겨 무너뜨리면 블록 수만큼 벌점", duration: "10~15분", difficulty: "보통", available: true, maxPlayers: 4 }
 };
