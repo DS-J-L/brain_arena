@@ -1,4 +1,4 @@
-import { SCORE_CATEGORIES, findAllHaps, hapKey, type GameView, type ScoreCategory } from "@brain-arena/shared";
+import { ATLAS_COLORS, ATLAS_TOKENS, SCORE_CATEGORIES, type AtlasColor, findAllHaps, hapKey, type GameView, type ScoreCategory } from "@brain-arena/shared";
 import { scoreDice } from "../games/secretDiceEngine.js";
 
 export interface BotDecision { type: string; payload?: Record<string, unknown> }
@@ -204,6 +204,39 @@ function decidePoker(view: Extract<GameView, { kind: "INDIAN_POKER" }>, botId: s
   return null;
 }
 
+type AtlasGameView = Extract<GameView, { kind: "ATLAS" }>;
+const atlasPenalty = (view: AtlasGameView, color: AtlasColor, number: number) => {
+  const stack = view.giants[color];
+  return stack.reduce((a, b) => a + b, 0) + number > view.limit ? stack.length + 1 : 0;
+};
+/** 무지개 블록을 올릴 거인: 벌점이 적고, 안전하다면 합을 한계 가까이 채워 다음 사람이 무너뜨리기 쉽게 한다. */
+const atlasBestColor = (view: AtlasGameView, number: number) => [...ATLAS_COLORS].sort((a, b) =>
+  atlasPenalty(view, a, number) - atlasPenalty(view, b, number) || view.giants[b].reduce((x, y) => x + y, 0) - view.giants[a].reduce((x, y) => x + y, 0))[0];
+
+/**
+ * 제출: 지금 보이는 거인 기준으로 벌점이 적은 수를 고르고, 안전하면 큰 숫자를 먼저 털어 낸다. 무지개 토큰은 아껴 둔다.
+ * 올리기: 지금 올리면 무너질 때 패스할 수 있으면 패스한다. 상대 손은 모르므로 공개 정보만 쓴다.
+ */
+function decideAtlas(view: AtlasGameView, botId: string): BotDecision | null {
+  const round = view.round;
+  if (view.phase === "PLACE") {
+    if (view.currentPlacerId !== botId || !view.mySubmission) return null;
+    const { number, token } = view.mySubmission;
+    const color = token === "RAINBOW" ? atlasBestColor(view, number) : token;
+    if (view.canPass && atlasPenalty(view, color, number) > 0) return { type: "PASS", payload: { round } };
+    return { type: "PLACE", payload: { color, round } };
+  }
+  if (view.phase !== "SUBMIT" || view.submittedIds.includes(botId)) return null;
+  const hand = view.myHand;
+  const moves = hand.numbers.flatMap(number => ATLAS_TOKENS.filter(token => hand.tokens[token] > 0).map(token => {
+    const color = token === "RAINBOW" ? atlasBestColor(view, number) : token, penalty = atlasPenalty(view, color, number);
+    const total = view.giants[color].reduce((a, b) => a + b, 0) + number;
+    return { number, token, value: -penalty * 10 + number + (penalty ? 0 : total) / 3 - (token === "RAINBOW" ? 3 : 0) + Math.random() * 2 };
+  })).sort((a, b) => b.value - a.value);
+  const move = noisyPick(moves);
+  return { type: "SUBMIT", payload: { number: move.number, token: move.token, round } };
+}
+
 export function decidePracticeBot(view: GameView, botId: string): BotDecision | null {
   if (view.winnerId) return null;
   switch (view.kind) {
@@ -219,6 +252,7 @@ export function decidePracticeBot(view: GameView, botId: string): BotDecision | 
       const free = view.owners.flatMap((owner, index) => owner === null ? [index] : []);
       return { type: "PICK_CARD", payload: { index: free[Math.floor(Math.random() * free.length)], hand: view.hand, pick: view.pickNumber } };
     }
+    case "ATLAS": return decideAtlas(view, botId);
     case "GYEOL_HAP_1":
     case "GYEOL_HAP": {
       if (view.currentPlayerId !== botId || (view.phase !== "TURN" && view.phase !== "SELECT")) return null;
