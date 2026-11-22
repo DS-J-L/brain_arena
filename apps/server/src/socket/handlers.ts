@@ -41,9 +41,10 @@ export function registerHandlers(io: Server, socket: Socket, rooms: RoomManager)
 
   socket.on("game:forfeit", (payload: PlayerRoomPayload, ack?: (value: Ack) => void) => safely(ack, () => {
     const room = rooms.forfeit(payload.roomCode, payload.playerId, socket.id);
-    broadcast(room, "game:finished");
     socket.leave(room.code);
     rooms.detachAfterForfeit(room, payload.playerId);
+    // 남은 플레이어에게는 기권자가 빠진 명단으로 알린다. 3인 이상이면 게임이 계속될 수 있다.
+    broadcast(room, room.status === "FINISHED" ? "game:finished" : "game:updated");
     return undefined;
   }));
 
