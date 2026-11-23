@@ -63,6 +63,8 @@ export interface AscendingView extends GameViewBase {
 
 export const SCORE_CATEGORIES = ["ONES", "TWOS", "THREES", "FOURS", "FIVES", "SIXES", "FULL_HOUSE", "SMALL_STRAIGHT", "LARGE_STRAIGHT", "FOUR_KIND", "FIVE_KIND", "JOKER"] as const;
 export type ScoreCategory = (typeof SCORE_CATEGORIES)[number];
+/** 공격자가 고정한 주사위 수에 따라 각자 비공개로 내는 숫자 개수. 최종 주사위는 항상 5개가 된다. */
+export const secretDiceCount = (kept: number, attacker: boolean) => kept === 1 ? 2 : kept === 2 ? (attacker ? 1 : 2) : 1;
 export type DicePhase = "KEEP" | "SECRET" | "SCORE";
 export interface SecretDiceView extends GameViewBase {
   kind: "SECRET_DICE";

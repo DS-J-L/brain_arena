@@ -13,7 +13,7 @@ const PIPS: Record<string, Array<[number, number]>> = {
 };
 
 /** "K♠" 같은 글자를 실제 카드 모양으로 그린다. mini는 작은 칸용으로 숫자와 무늬만 보여준다. */
-function PlayingCardFace({ text, position, mini }: { text: string; position?: string; mini?: boolean }) {
+export function PlayingCardFace({ text, position, mini }: { text: string; position?: string; mini?: boolean }) {
   const rank = text.slice(0, -1), suit = text.slice(-1), tone = suit === "♥" || suit === "♦" ? " red" : "";
   if (mini) return <span className={`pcard mini${tone}`}><b>{rank}</b><i>{suit}</i></span>;
   const corner = <><b>{rank}</b><i>{suit}</i></>;

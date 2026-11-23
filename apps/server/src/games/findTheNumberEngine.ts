@@ -1,4 +1,4 @@
-import { findNumberTargetScore, type FindTheNumberView, type NumberCardValue, type NumberOperator } from "@brain-arena/shared";
+import { calculateNumberCards as calculate, findNumberTargetScore, type FindTheNumberView, type NumberCardValue, type NumberOperator } from "@brain-arena/shared";
 import type { GameEngine, GameResult } from "./gameEngine.js";
 
 type FindNumberAction = { type: "BUZZ" } | { type: "SELECT_CARDS"; indices: number[] };
@@ -35,14 +35,6 @@ const OPERATORS: NumberOperator[] = ["+", "-", "×", "÷"];
 const TIMES = { MEMORIZE: 20_000, BUZZER: 15_000, REBUZZ: 10_000, ANSWER_FIRST: 5_000, ANSWER_SECOND: 15_000, SOLO_ANSWER: 15_000, REVEAL: 2_000, SOLUTION: 3_000 };
 const shuffle = <T>(values: T[]) => { const result = [...values]; for (let index = result.length - 1; index > 0; index--) { const target = Math.floor(Math.random() * (index + 1)); [result[index], result[target]] = [result[target], result[index]]; } return result; };
 const newBoard = () => shuffle<NumberCardValue>([1,2,3,4,5,6,7,8,9,10,11,12,...OPERATORS]);
-
-function calculate(first: number, operator: NumberOperator, second: number) {
-  if (operator === "+") return first + second;
-  if (operator === "-") return first - second;
-  if (operator === "×") return first * second;
-  if (second === 0 || first % second !== 0) return null;
-  return first / second;
-}
 
 export function findNumberSolution(board: NumberCardValue[], target: number) {
   for (let first = 0; first < board.length; first++) {

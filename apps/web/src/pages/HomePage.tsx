@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GAME_INFO, GAME_TYPES, type GameType } from "@brain-arena/shared";
 import { Logo } from "../components/Logo";
-import { RuleModal } from "../components/RuleModal";
+import { GuideModal } from "../guide/GuideModal";
 
 interface Props { nickname: string; setNickname: (v: string) => void; onCreate: (g: GameType) => void; onPractice: (g: GameType) => void; onJoin: (code: string) => void; busy: boolean; error: string }
 
@@ -33,7 +33,7 @@ export function HomePage({ nickname, setNickname, onCreate, onPractice, onJoin, 
         return <button key={type} className={`game-card ${selected === type ? "selected" : ""}`} onClick={() => setSelected(type)}><span className="game-number">0{index + 1}</span><div className={`game-symbol symbol-${index}`}>{["◐", "↗", "⚄", "◇", "#", "✦", "✹", "♠", "▲"][index]}</div><h3>{game.name}</h3><p>{game.description}</p><footer><span>{game.maxPlayers > 2 ? `2~${game.maxPlayers}인` : "1:1"}</span><span>{game.duration}</span><span>{game.difficulty}</span></footer>{!game.available && <span className="soon">RULES TBD</span>}</button>;
       })}</div>
     </section>
-    {showRules && <RuleModal gameType={selected} onClose={() => setShowRules(false)}/>}
+    {showRules && <GuideModal gameType={selected} initialTab="overview" onClose={() => setShowRules(false)}/>}
   </main>;
 }
 
