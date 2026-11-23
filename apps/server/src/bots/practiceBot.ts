@@ -1,4 +1,4 @@
-import { ATLAS_COLORS, ATLAS_TOKENS, SCORE_CATEGORIES, type AtlasColor, findAllHaps, hapKey, type GameView, type ScoreCategory } from "@brain-arena/shared";
+import { ATLAS_COLORS, ATLAS_TOKENS, SCORE_CATEGORIES, WALL_GO_CELLS, WALL_SIDES, type AtlasColor, findAllHaps, hapKey, type GameView, type ScoreCategory, type WallGoPiece, type WallGoWalls, wallGoMoves, wallGoStep, wallKey } from "@brain-arena/shared";
 import { scoreDice } from "../games/secretDiceEngine.js";
 
 export interface BotDecision { type: string; payload?: Record<string, unknown> }
@@ -237,6 +237,43 @@ function decideAtlas(view: AtlasGameView, botId: string): BotDecision | null {
   return { type: "SUBMIT", payload: { number: move.number, token: move.token, round } };
 }
 
+type WallGoGameView = Extract<GameView, { kind: "WALL_GO" }>;
+/** 벽만 따라 센 거리(말은 무시). 닿지 못하는 칸은 Infinity. */
+function wallGoDistances(walls: WallGoWalls, sources: number[]) {
+  const distance = new Array<number>(WALL_GO_CELLS).fill(Infinity), queue = [...sources];
+  for (const cell of sources) distance[cell] = 0;
+  for (let index = 0; index < queue.length; index++) for (const side of WALL_SIDES) {
+    const to = wallGoStep(walls, queue[index], side);
+    if (to !== null && distance[to] === Infinity) { distance[to] = distance[queue[index]] + 1; queue.push(to); }
+  }
+  return distance;
+}
+/** 내 말에 더 가까운 칸 수 - 상대 말에 더 가까운 칸 수. 닫힌 구역은 그대로 확정 점수가 된다. */
+export function wallGoEstimate(walls: WallGoWalls, pieces: WallGoPiece[], botId: string) {
+  const mine = wallGoDistances(walls, pieces.filter(p => p.ownerId === botId).map(p => p.cell));
+  const theirs = wallGoDistances(walls, pieces.filter(p => p.ownerId !== botId).map(p => p.cell));
+  return mine.reduce((score, distance, cell) => score + Math.sign(theirs[cell] - distance || 0), 0);
+}
+const shuffled = <T>(values: T[]) => values.map(value => ({ value, key: Math.random() })).sort((a, b) => a.key - b.key).map(item => item.value);
+
+/** 한 수 앞만 본다: 둔 뒤의 판에서 내게 더 가까운 칸이 가장 많아지는 수를 고르되, 가끔 차선을 둔다. */
+function decideWallGo(view: WallGoGameView, botId: string): BotDecision | null {
+  if (view.currentPlayerId !== botId) return null;
+  const turn = view.turn;
+  if (view.phase === "PLACE") {
+    const taken = new Set(view.pieces.map(p => p.cell));
+    const ranked = shuffled(Array.from({ length: WALL_GO_CELLS }, (_, cell) => cell).filter(cell => !taken.has(cell)))
+      .map(cell => ({ cell, score: wallGoEstimate(view.walls, [...view.pieces, { id: -1, ownerId: botId, cell }], botId) }))
+      .sort((a, b) => b.score - a.score);
+    return ranked.length ? { type: "PLACE", payload: { cell: noisyPick(ranked).cell, turn } } : null;
+  }
+  const ranked = shuffled(wallGoMoves(view.walls, view.pieces, botId)).map(move => {
+    const pieces = view.pieces.map(p => p.id === move.pieceId ? { ...p, cell: move.to } : p);
+    return { move, score: wallGoEstimate({ ...view.walls, [wallKey(move.to, move.wall)!]: botId }, pieces, botId) };
+  }).sort((a, b) => b.score - a.score);
+  return ranked.length ? { type: "MOVE", payload: { ...noisyPick(ranked).move, turn } } : null;
+}
+
 export function decidePracticeBot(view: GameView, botId: string): BotDecision | null {
   if (view.winnerId) return null;
   switch (view.kind) {
@@ -253,6 +290,7 @@ export function decidePracticeBot(view: GameView, botId: string): BotDecision | 
       return { type: "PICK_CARD", payload: { index: free[Math.floor(Math.random() * free.length)], hand: view.hand, pick: view.pickNumber } };
     }
     case "ATLAS": return decideAtlas(view, botId);
+    case "WALL_GO": return decideWallGo(view, botId);
     case "GYEOL_HAP_1":
     case "GYEOL_HAP": {
       if (view.currentPlayerId !== botId || (view.phase !== "TURN" && view.phase !== "SELECT")) return null;

@@ -1,4 +1,5 @@
-export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP", "MEMORY_HOLDEM", "ATLAS"] as const;
+import type { WallGoPiece, WallGoWalls, WallSide } from "./wallGoRules.js";
+export const GAME_TYPES = ["BLACK_AND_WHITE", "ASCENDING", "SECRET_DICE", "INDIAN_POKER", "FIND_THE_NUMBER", "GYEOL_HAP_1", "GYEOL_HAP", "MEMORY_HOLDEM", "ATLAS", "WALL_GO"] as const;
 export type GameType = (typeof GAME_TYPES)[number];
 export type RoomStatus = "WAITING" | "PLAYING" | "FINISHED";
 
@@ -278,7 +279,36 @@ export interface AtlasView extends GameViewBase {
   history: AtlasRoundReview[];
 }
 
-export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView | GyeolHapView | MemoryHoldemView | AtlasView;
+export interface WallGoMove {
+  turn: number;
+  playerId: string;
+  pieceId: number;
+  from: number;
+  to: number;
+  wall: WallSide;
+  /** 제한 시간이 지나 자동으로 둔 수 */
+  auto: boolean;
+}
+export interface WallGoView extends GameViewBase {
+  kind: "WALL_GO";
+  /** PLACE: 남은 말 배치 · MOVE: 말 하나 이동 → 그 말 옆에 벽 하나 */
+  phase: "PLACE" | "MOVE";
+  /** 자리 순서. 0번이 선공 */
+  playerIds: string[];
+  currentPlayerId: string;
+  /** 지금까지 둔 행동 수(배치 포함). 늦게 도착한 클릭을 걸러 낸다. */
+  turn: number;
+  /** 남은 배치 차례 */
+  placeQueue: string[];
+  pieces: WallGoPiece[];
+  walls: WallGoWalls;
+  moves: WallGoMove[];
+  territory: Record<string, number>;
+  largest: Record<string, number>;
+  contested: number;
+}
+
+export type GameView = BlackAndWhiteView | AscendingView | SecretDiceView | IndianPokerView | FindTheNumberView | GyeolHapView | MemoryHoldemView | AtlasView | WallGoView;
 export interface RoomView {
   code: string;
   hostId: string;
@@ -309,5 +339,6 @@ export const GAME_INFO: Record<GameType, { name: string; description: string; du
   GYEOL_HAP_1: { name: "결! 합! 1", description: "모양·도형 색·배경 색 각 3종으로 합을 찾는 3라운드 대결", duration: "3~10분", difficulty: "쉬움", available: true, maxPlayers: 4 },
   GYEOL_HAP: { name: "결! 합! 2", description: "모양 5종·도형 색 4종·배경 색 3종의 확장 합 찾기", duration: "3~10분", difficulty: "보통", available: true, maxPlayers: 4 },
   MEMORY_HOLDEM: { name: "메모리 홀덤", description: "카드 위치를 기억해 두 장으로 족보를 겨루는 5판 3선승 대결", duration: "5~10분", difficulty: "보통", available: true, maxPlayers: 2 },
-  ATLAS: { name: "아틀라스의 형벌", description: "세 거인 위에 숫자 블록을 쌓되, 한계를 넘겨 무너뜨리면 블록 수만큼 벌점", duration: "10~15분", difficulty: "보통", available: true, maxPlayers: 4 }
+  ATLAS: { name: "아틀라스의 형벌", description: "세 거인 위에 숫자 블록을 쌓되, 한계를 넘겨 무너뜨리면 블록 수만큼 벌점", duration: "10~15분", difficulty: "보통", available: true, maxPlayers: 4 },
+  WALL_GO: { name: "벽바둑", description: "말을 옮기고 그 옆에 벽을 세워, 내 말만 있는 땅을 상대보다 넓게 차지하세요", duration: "10~20분", difficulty: "보통", available: true, maxPlayers: 2 }
 };
