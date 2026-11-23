@@ -6,14 +6,16 @@ const shapes = { CIRCLE: "원", STAR: "별", TRIANGLE: "삼각형", SQUARE: "사
 const colors = { PURPLE: "보라", GREEN: "녹색", ORANGE: "주황", YELLOW: "노랑" };
 const backgrounds = { BLACK: "검정", GRAY: "회색", WHITE: "하양" };
 const fills = { PURPLE: "#b969f5", GREEN: "#38ce84", ORANGE: "#ff8a32", YELLOW: "#ffe345" };
-const backgroundFills = { BLACK: "#111116", GRAY: "#777984", WHITE: "#faf9fc" };
+export const backgroundFills = { BLACK: "#111116", GRAY: "#777984", WHITE: "#faf9fc" };
+/** 설명서 그림의 대체 텍스트용 속성 이름. */
+export const HAP_NAMES = { shape: shapes, shapeColor: colors, backgroundColor: backgrounds };
 const reasons: Record<HapAttempt["reason"], string> = {
   NEW_HAP: "새로운 합", NOT_HAP: "합이 아닙니다", DUPLICATE: "이미 찾은 합",
   GYEOL: "결 정답 · 남은 합 없음", WRONG_GYEOL: "결 오답 · 아직 남은 합이 있습니다",
   PASS: "시간 초과 · 패스", TIMEOUT: "합 제출 시간 초과",
 };
 
-function HapShape({ tile }: { tile: HapTile }) {
+export function HapShape({ tile }: { tile: HapTile }) {
   const stroke = tile.backgroundColor === "BLACK" ? "#f8f4ff" : "#24212a";
   return <svg viewBox="0 0 80 80" aria-hidden="true" fill={fills[tile.shapeColor]} stroke={stroke} strokeWidth="1.7" strokeLinejoin="round">
     {tile.shape === "CIRCLE" && <circle cx="40" cy="40" r="23" />}
@@ -27,7 +29,7 @@ function HapShape({ tile }: { tile: HapTile }) {
   </svg>;
 }
 
-function HapBoard({ board, selected = [], interactive = false, onPick }: { board: HapTile[]; selected?: number[]; interactive?: boolean; onPick?: (n: number) => void }) {
+export function HapBoard({ board, selected = [], interactive = false, onPick }: { board: HapTile[]; selected?: number[]; interactive?: boolean; onPick?: (n: number) => void }) {
   return <div className="hap-board" role="group" aria-label="결! 합! 타일 보드">
     {board.map((tile, index) => {
       const number = index + 1, chosen = selected.includes(number);
@@ -42,7 +44,7 @@ function HapBoard({ board, selected = [], interactive = false, onPick }: { board
   </div>;
 }
 
-function Checks({ checks }: { checks: HapCheck }) {
+export function Checks({ checks }: { checks: HapCheck }) {
   const labels = { shape: "모양", shapeColor: "도형 색", backgroundColor: "배경 색" };
   return <div className="hap-checks">{(Object.keys(labels) as Array<keyof HapCheck>).map(key => <span key={key} className={checks[key] === "TWO_SAME" ? "failed" : "passed"}>
     {labels[key]}: {checks[key] === "SAME" ? "모두 같음 ✓" : checks[key] === "DIFFERENT" ? "모두 다름 ✓" : "두 개만 같음 ✕"}

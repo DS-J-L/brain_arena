@@ -1,0 +1,8 @@
+import type { ScoreCategory } from "@brain-arena/shared";
+
+/** 시크릿 다이스 점수판의 이름·설명·점수 미리보기. 게임 화면과 설명서가 함께 쓴다. */
+export const categoryNames:Record<ScoreCategory,string>={ONES:"Ones",TWOS:"Twos",THREES:"Threes",FOURS:"Fours",FIVES:"Fives",SIXES:"Sixes",FULL_HOUSE:"2·3 다이스",SMALL_STRAIGHT:"4연속",LARGE_STRAIGHT:"5연속",FOUR_KIND:"4다이스",FIVE_KIND:"5다이스",JOKER:"조커"};
+export const categoryRules:Record<ScoreCategory,string>={ONES:"1의 합",TWOS:"2의 합",THREES:"3의 합",FOURS:"4의 합",FIVES:"5의 합",SIXES:"6의 합",FULL_HOUSE:"같은 수 3개+2개 · 15점",SMALL_STRAIGHT:"원형 4연속 · 20점",LARGE_STRAIGHT:"원형 5연속 · 30점",FOUR_KIND:"같은 수 4개 이상 · 25점",FIVE_KIND:"같은 수 5개 · 50점",JOKER:"주사위 5개의 총합"};
+const numberCategoryFaces:Partial<Record<ScoreCategory,number>>={ONES:1,TWOS:2,THREES:3,FOURS:4,FIVES:5,SIXES:6};
+function hasCircularDiceRun(dice:number[],length:number){const faces=new Set(dice);return[1,2,3,4,5,6].some(start=>Array.from({length},(_,offset)=>(start-1+offset)%6+1).every(face=>faces.has(face)))}
+export function previewDiceScore(dice:number[],category:ScoreCategory){const face=numberCategoryFaces[category];if(face)return dice.filter(value=>value===face).reduce((sum,value)=>sum+value,0);const counts=[1,2,3,4,5,6].map(value=>dice.filter(die=>die===value).length).filter(Boolean).sort((a,b)=>a-b);if(category==="FULL_HOUSE")return counts.join(",")==="2,3"?15:0;if(category==="SMALL_STRAIGHT")return hasCircularDiceRun(dice,4)?20:0;if(category==="LARGE_STRAIGHT")return hasCircularDiceRun(dice,5)?30:0;if(category==="FOUR_KIND")return Math.max(...counts)>=4?25:0;if(category==="FIVE_KIND")return Math.max(...counts)===5?50:0;return dice.reduce((sum,value)=>sum+value,0)}

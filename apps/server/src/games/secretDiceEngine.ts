@@ -1,4 +1,4 @@
-import { SCORE_CATEGORIES, type ScoreCategory, type SecretDiceView } from "@brain-arena/shared";
+import { SCORE_CATEGORIES, secretDiceCount, type ScoreCategory, type SecretDiceView } from "@brain-arena/shared";
 import type { GameEngine, GameResult } from "./gameEngine.js";
 
 type SecretAction={type:"KEEP_DICE";indices:number[]}|{type:"SELECT_SECRET";values:number[]}|{type:"SCORE_CATEGORY";category:ScoreCategory};
@@ -7,7 +7,7 @@ const roll=()=>Math.floor(Math.random()*6)+1; const rollThree=()=>[roll(),roll()
 const ACTION_TIME_MS=50_000;
 function hasCircularRun(dice:number[],length:number){const faces=new Set(dice);return [1,2,3,4,5,6].some(start=>Array.from({length},(_,offset)=>(start-1+offset)%6+1).every(face=>faces.has(face)));}
 export function scoreDice(dice:number[],category:ScoreCategory){const counts=Array(7).fill(0);dice.forEach(v=>counts[v]++);const sum=dice.reduce((a,b)=>a+b,0);if(category.endsWith("S")){const face=SCORE_CATEGORIES.indexOf(category)+1;return counts[face]*face;}const freq=counts.slice(1).filter(Boolean).sort((a,b)=>a-b);if(category==="FULL_HOUSE")return freq.join(",")==="2,3"?15:0;if(category==="SMALL_STRAIGHT")return hasCircularRun(dice,4)?20:0;if(category==="LARGE_STRAIGHT")return hasCircularRun(dice,5)?30:0;if(category==="FOUR_KIND")return Math.max(...counts)>=4?25:0;if(category==="FIVE_KIND")return Math.max(...counts)===5?50:0;if(category==="JOKER")return sum;return 0;}
-const required=(kept:number,attacker:boolean)=>kept===1?2:kept===2?(attacker?1:2):1;
+const required=secretDiceCount;
 export const secretDiceEngine:GameEngine<SecretDiceState,SecretAction,SecretDiceView>={
  createInitialState(ids){if(ids.length!==2)throw new Error("두 명의 플레이어가 필요합니다.");const[a,b]=ids as[string,string];const attackerId=ids[Math.floor(Math.random()*2)];return{playerIds:[a,b],turn:1,attackerId,phase:"KEEP",publicDice:rollThree(),keptIndices:[],secretSelections:{[a]:null,[b]:null},finalDice:null,scoreSheets:{[a]:{},[b]:{}},threeKeepAvailable:{[a]:true,[b]:true},winnerId:null,isDraw:false,deadline:Date.now()+ACTION_TIME_MS};},
  validateAction(s,p,a){if(s.winnerId||!s.playerIds.includes(p))return false;if(a.type==="KEEP_DICE")return s.phase==="KEEP"&&p===s.attackerId&&Array.isArray(a.indices)&&a.indices.length>=1&&a.indices.length<=3&&new Set(a.indices).size===a.indices.length&&a.indices.every(i=>Number.isInteger(i)&&i>=0&&i<3)&&(a.indices.length<3||s.threeKeepAvailable[p]);if(a.type==="SELECT_SECRET"){const need=required(s.keptIndices.length,p===s.attackerId);return s.phase==="SECRET"&&s.secretSelections[p]===null&&Array.isArray(a.values)&&a.values.length===need&&a.values.every(v=>Number.isInteger(v)&&v>=1&&v<=6);}return a.type==="SCORE_CATEGORY"&&s.phase==="SCORE"&&p===s.attackerId&&SCORE_CATEGORIES.includes(a.category)&&s.scoreSheets[p][a.category]===undefined;},

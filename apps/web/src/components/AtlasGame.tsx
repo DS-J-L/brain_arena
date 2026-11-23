@@ -14,7 +14,7 @@ function GiantFigure() {
   </svg>;
 }
 
-function Giant({ color, blocks, limit, preview, collapsed, onPick }: { color: AtlasColor; blocks: number[]; limit: number; preview: number | null; collapsed?: AtlasPlacement; onPick?: () => void }) {
+export function Giant({ color, blocks, limit, preview, collapsed, onPick }: { color: AtlasColor; blocks: number[]; limit: number; preview: number | null; collapsed?: AtlasPlacement; onPick?: () => void }) {
   const total = sum(blocks), next = preview === null ? null : total + preview, breaks = next !== null && next > limit;
   const Tag = onPick ? "button" : "article";
   return <Tag className={`atlas-giant ${color.toLowerCase()}${breaks ? " danger" : ""}${collapsed ? " collapsed" : ""}${onPick ? " pickable" : ""}`} onClick={onPick}>
