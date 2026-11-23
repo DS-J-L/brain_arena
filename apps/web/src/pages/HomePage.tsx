@@ -2,6 +2,7 @@ import { useState } from "react";
 import { GAME_INFO, GAME_TYPES, type GameType } from "@brain-arena/shared";
 import { Logo } from "../components/Logo";
 import { GuideModal } from "../guide/GuideModal";
+import { GameIcon, gameTags } from "../components/GameIcon";
 
 interface Props { nickname: string; setNickname: (v: string) => void; onCreate: (g: GameType) => void; onPractice: (g: GameType) => void; onJoin: (code: string) => void; busy: boolean; error: string }
 
@@ -28,9 +29,14 @@ export function HomePage({ nickname, setNickname, onCreate, onPractice, onJoin, 
     </section>
     <section className="games">
       <div className="section-head"><div><p className="eyebrow">CHOOSE YOUR GAME</p><h2>오늘의 게임</h2></div><p>게임을 선택한 뒤 규칙을 읽거나 새 방을 만드세요.</p></div>
-      <div className="game-grid">{GAME_TYPES.map((type, index) => {
-        const game = GAME_INFO[type];
-        return <button key={type} className={`game-card ${selected === type ? "selected" : ""}`} onClick={() => setSelected(type)}><span className="game-number">0{index + 1}</span><div className={`game-symbol symbol-${index}`}>{["◐", "↗", "⚄", "◇", "#", "✦", "✹", "♠", "▲"][index]}</div><h3>{game.name}</h3><p>{game.description}</p><footer><span>{game.maxPlayers > 2 ? `2~${game.maxPlayers}인` : "1:1"}</span><span>{game.duration}</span><span>{game.difficulty}</span></footer>{!game.available && <span className="soon">RULES TBD</span>}</button>;
+      <div className="game-grid">{GAME_TYPES.map(type => {
+        const game = GAME_INFO[type], isSelected = selected === type;
+        return <button key={type} className={`game-card ${isSelected ? "selected" : ""}`} aria-pressed={isSelected} title={`${game.description} · ${game.maxPlayers > 2 ? `2~${game.maxPlayers}인` : "1:1"} · ${game.duration}`} onClick={() => setSelected(type)}>
+          <GameIcon type={type}/>
+          <span className="game-card-text"><h3>{game.name}</h3><p>{gameTags(type)}</p></span>
+          {isSelected && <svg className="game-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>}
+          {!game.available && <span className="soon">RULES TBD</span>}
+        </button>;
       })}</div>
     </section>
     {showRules && <GuideModal gameType={selected} initialTab="overview" onClose={() => setShowRules(false)}/>}
