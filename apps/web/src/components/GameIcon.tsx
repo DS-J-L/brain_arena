@@ -12,6 +12,7 @@ const ICONS: Record<GameType, { tone: string; tags: string; paths: ReactNode }> 
   GYEOL_HAP: { tone: "teal", tags: "확장 · 패턴 찾기", paths: <><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/><path d="M14 6.5h6m-2.2-2.2 2.2 2.2-2.2 2.2M10 17.5H4m2.2-2.2L4 17.5l2.2 2.2"/></> },
   MEMORY_HOLDEM: { tone: "blue", tags: "기억 · 카드 조합", paths: <><rect x="10" y="4" width="10" height="16" rx="2"/><path d="M6.5 6.5v11M3 9v6"/></> },
   ATLAS: { tone: "amber", tags: "블록 · 한계 읽기", paths: <><path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></> },
+  WALL_GO: { tone: "teal", tags: "영역 · 벽 세우기", paths: <><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M12 3v9h9" strokeWidth="2.6"/><circle cx="7.5" cy="7.5" r="1.6" fill="currentColor"/><circle cx="16.5" cy="16.5" r="1.6" fill="currentColor"/></> },
 };
 
 export const gameTags = (type: GameType) => ICONS[type].tags;
